@@ -1,0 +1,90 @@
+{
+  "specialties": {
+    "Pulmonologist": {
+      "description": {
+        "en": "Lung and respiratory system specialist",
+        "hi": "फेफड़े और श्वसन तंत्र विशेषज्ञ",
+        "ta": "நுரையீரல் மற்றும் சுவாச நிபுணர்",
+        "kn": "ಶ್ವಾಸಕೋಶ ತಜ್ಞ"
+      },
+      "whenToVisit": {
+        "en": "If symptoms like persistent cough, breathlessness, or chest pain last more than 3 days",
+        "hi": "यदि खांसी, सांस फूलना या सीने में दर्द 3 दिन से अधिक रहे",
+        "ta": "இருமல், மூச்சுத்திணறல் 3 நாட்களுக்கு மேல் இருந்தால்",
+        "kn": "ಕೆಮ್ಮು, ಉಸಿರಾಟ ತೊಂದರೆ 3 ದಿನಕ್ಕಿಂತ ಹೆಚ್ಚು ಇದ್ದರೆ"
+      },
+      "icon": "🫁",
+      "urgency": "high"
+    },
+    "Orthopedic Surgeon": {
+      "description": {
+        "en": "Bone, joint, and musculoskeletal specialist",
+        "hi": "हड्डी, जोड़ और मांसपेशी विशेषज्ञ",
+        "ta": "எலும்பு, மூட்டு நிபுணர்",
+        "kn": "ಮೂಳೆ, ಕೀಲು ತಜ್ಞ"
+      },
+      "whenToVisit": {
+        "en": "Immediately if fracture is suspected or joint cannot bear weight",
+        "hi": "यदि फ्रैक्चर का संदेह हो या जोड़ वजन न उठा सके तो तुरंत जाएं",
+        "ta": "முறிவு சந்தேகப்பட்டால் உடனே செல்லவும்",
+        "kn": "ಮುರಿತ ಅನುಮಾನವಿದ್ದರೆ ತಕ್ಷಣ ಹೋಗಿ"
+      },
+      "icon": "🦴",
+      "urgency": "critical"
+    },
+    "Rheumatologist": {
+      "description": {
+        "en": "Autoimmune and joint disease specialist",
+        "hi": "स्वप्रतिरक्षा और जोड़ रोग विशेषज्ञ",
+        "ta": "தன்னுடல் தாக்கு மற்றும் மூட்டு நோய் நிபுணர்",
+        "kn": "ಸ್ವಯಂ ನಿರೋಧಕ ಮತ್ತು ಕೀಲು ರೋಗ ತಜ್ಞ"
+      },
+      "whenToVisit": {
+        "en": "If joint pain persists more than 6 weeks or multiple joints are affected",
+        "hi": "यदि जोड़ों का दर्द 6 सप्ताह से अधिक हो या कई जोड़ प्रभावित हों",
+        "ta": "மூட்டு வலி 6 வாரங்களுக்கு மேல் இருந்தால்",
+        "kn": "ಕೀಲು ನೋವು 6 ವಾರಕ್ಕಿಂತ ಹೆಚ್ಚು ಇದ್ದರೆ"
+      },
+      "icon": "🩺",
+      "urgency": "medium"
+    },
+    "Dermatologist": {
+      "description": {
+        "en": "Skin, hair, and nail specialist",
+        "hi": "त्वचा, बाल और नाखून विशेषज्ञ",
+        "ta": "தோல், முடி மற்றும் நகம் நிபுணர்",
+        "kn": "ಚರ್ಮ, ಕೂದಲು ತಜ್ಞ"
+      },
+      "whenToVisit": {
+        "en": "If rash spreads rapidly, is painful, or shows signs of infection",
+        "hi": "यदि दाने तेजी से फैले, दर्द हो या संक्रमण के संकेत हों",
+        "ta": "தடிப்பு வேகமாக பரவினால் அல்லது வலி இருந்தால்",
+        "kn": "ದದ್ದು ವೇಗವಾಗಿ ಹರಡಿದರೆ ಅಥವಾ ನೋವು ಇದ್ದರೆ"
+      },
+      "icon": "🧴",
+      "urgency": "low"
+    },
+    "General Physician": {
+      "description": {
+        "en": "Primary care doctor for general health concerns",
+        "hi": "सामान्य स्वास्थ्य समस्याओं के लिए प्राथमिक देखभाल चिकित्सक",
+        "ta": "பொதுவான சுகாதார சிக்கல்களுக்கு ஆரம்ப பராமரிப்பு மருத்துவர்",
+        "kn": "ಸಾಮಾನ್ಯ ಆರೋಗ್ಯ ಸಮಸ್ಯೆಗೆ ಪ್ರಾಥಮಿಕ ಆರೈಕೆ ವೈದ್ಯ"
+      },
+      "whenToVisit": {
+        "en": "For any initial health concern or mild to moderate symptoms lasting more than 2 days",
+        "hi": "किसी भी प्रारंभिक स्वास्थ्य समस्या या 2 दिन से अधिक के लक्षणों के लिए",
+        "ta": "எந்த ஆரம்ப சுகாதார கவலைக்கும் அல்லது 2 நாட்களுக்கு மேல் நீடிக்கும் அறிகுறிகளுக்கு",
+        "kn": "ಯಾವುದೇ ಆರಂಭಿಕ ಆರೋಗ್ಯ ಕಾಳಜಿ ಅಥವಾ 2 ದಿನಕ್ಕಿಂತ ಹೆಚ್ಚು ರೋಗಲಕ್ಷಣಗಳಿಗೆ"
+      },
+      "icon": "👨‍⚕️",
+      "urgency": "low"
+    }
+  },
+  "emergencyNumbers": {
+    "ambulance": "108",
+    "nationalHealthline": "104",
+    "emergencyServices": "112",
+    "covidHelpline": "1075"
+  }
+}

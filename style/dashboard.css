@@ -1,0 +1,1072 @@
+/* dashboard.css — Dashboard shell and all tab styles */
+
+/* ─── Dashboard Layout ─── */
+.dashboard-page {
+  display: flex; min-height: 100vh;
+  background: var(--bg-base);
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  width: 260px; min-height: 100vh;
+  background: rgba(12, 20, 38, 0.95);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border-color);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+  transition: transform var(--transition-base);
+}
+
+.sidebar-header {
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+  display: flex; align-items: center; gap: 12px;
+}
+.sidebar-logo-icon {
+  width: 38px; height: 38px;
+  background: var(--grad-primary);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  box-shadow: var(--shadow-glow);
+  flex-shrink: 0;
+}
+.sidebar-logo-text {
+  font-family: var(--font-heading);
+  font-size: 1.3rem; font-weight: 800;
+  background: var(--grad-primary);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.sidebar-tagline {
+  font-size: 0.7rem; color: var(--text-muted); margin-top: 1px;
+}
+
+/* Language bar in sidebar */
+.sidebar-lang {
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--border-color);
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+
+/* Nav buttons */
+.sidebar-nav {
+  flex: 1;
+  padding: var(--space-md) var(--space-sm);
+  display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto;
+}
+
+.nav-btn {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px var(--space-md);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.9rem; font-weight: 500;
+  background: transparent;
+  transition: all var(--transition-fast);
+  text-align: left; width: 100%;
+}
+.nav-btn:hover {
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--color-primary);
+}
+.nav-btn.active {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--color-primary);
+  border-left: 3px solid var(--color-primary);
+}
+.nav-btn .nav-icon {
+  font-size: 1.2rem; width: 24px; text-align: center; flex-shrink: 0;
+}
+.nav-btn .nav-label { flex: 1; }
+
+/* SOS nav special style */
+.nav-btn[data-tab="sos"] { color: var(--color-danger); }
+.nav-btn[data-tab="sos"]:hover { background: rgba(239,68,68,0.1); }
+.nav-btn[data-tab="sos"].active { background: rgba(239,68,68,0.12); border-color: var(--color-danger); }
+
+.sidebar-footer {
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--border-color);
+  font-size: 0.72rem; color: var(--text-muted);
+}
+
+/* ─── Main Content Area ─── */
+.main-content {
+  flex: 1; margin-left: 260px;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+
+/* Top header bar */
+.dashboard-topbar {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px var(--space-xl);
+  background: rgba(8, 13, 26, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-color);
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.hamburger-btn {
+  display: none;
+  background: none; border: none; color: var(--text-secondary);
+  font-size: 1.4rem; padding: 6px;
+  cursor: pointer;
+}
+.topbar-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem; font-weight: 700; color: var(--text-heading);
+}
+.topbar-right { display: flex; align-items: center; gap: var(--space-md); }
+.top-action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all var(--transition-fast);
+}
+.top-action-btn:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--color-primary);
+  transform: scale(1.05);
+}
+.topbar-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: var(--radius-pill);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16,185,129,0.3);
+  color: var(--color-accent);
+  font-size: 0.78rem; font-weight: 600;
+}
+.topbar-badge::before { content: '●'; font-size: 8px; animation: pulse-dot 1.5s infinite; }
+
+/* Page body */
+.page-body {
+  flex: 1; padding: var(--space-xl);
+  max-width: 1000px; margin: 0 auto; width: 100%;
+}
+
+/* Tab headers */
+.tab-header {
+  margin-bottom: var(--space-xl);
+}
+.tab-title {
+  font-size: 1.8rem; font-weight: 800;
+  background: var(--grad-primary);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+.tab-subtitle {
+  color: var(--text-secondary); font-size: 0.9rem;
+}
+
+/* ─── Scanner Tab ─── */
+.scanner-top-bar {
+  display: flex; align-items: center; gap: var(--space-md);
+  flex-wrap: wrap; margin-bottom: var(--space-lg);
+}
+.member-select-wrap { display: flex; align-items: center; gap: var(--space-sm); }
+.member-select-label { color: var(--text-secondary); font-size: 0.85rem; }
+.member-select {
+  padding: 8px 14px; border-radius: var(--radius-pill);
+  background: var(--bg-input); border: 1px solid var(--border-color);
+  color: var(--text-primary); font-size: 0.85rem; outline: none;
+}
+.member-select:focus { border-color: var(--color-primary); }
+
+/* Upload area */
+.upload-area {
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  text-align: center; cursor: pointer;
+  transition: all var(--transition-base);
+  background: rgba(0,212,255,0.02);
+  min-height: 200px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: var(--space-md);
+}
+.upload-area:hover, .upload-area.drag-over {
+  border-color: var(--color-primary);
+  background: rgba(0,212,255,0.06);
+  box-shadow: var(--shadow-glow);
+}
+.upload-icon { font-size: 3rem; }
+.upload-title { font-size: 1rem; font-weight: 600; }
+.upload-hint { color: var(--text-muted); font-size: 0.82rem; }
+.upload-or {
+  color: var(--text-muted); font-size: 0.82rem;
+  position: relative; padding: 0 var(--space-md);
+}
+.upload-or::before, .upload-or::after {
+  content: ''; position: absolute; top: 50%;
+  width: 40px; height: 1px; background: var(--border-color);
+}
+.upload-or::before { right: 100%; }
+.upload-or::after { left: 100%; }
+
+.upload-actions {
+  display: flex; gap: var(--space-md); flex-wrap: wrap; justify-content: center;
+}
+
+/* Scanner preview area */
+.scanner-preview-area {
+  position: relative; margin-bottom: var(--space-lg);
+  border-radius: var(--radius-xl); overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  min-height: 100px;
+}
+#image-preview {
+  width: 100%; max-height: 400px;
+  object-fit: contain; display: none;
+}
+#xray-canvas {
+  width: 100%; max-height: 400px;
+  display: none; object-fit: contain;
+}
+.xray-badge {
+  position: absolute; top: 12px; right: 12px;
+  padding: 5px 14px; border-radius: var(--radius-pill);
+  background: rgba(0, 212, 255, 0.2);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  font-size: 0.78rem; font-weight: 700;
+  display: none;
+}
+
+/* Analyzing overlay */
+.analyzing-overlay {
+  position: absolute; inset: 0;
+  background: rgba(8,13,26,0.85);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: var(--space-md); border-radius: var(--radius-xl);
+  z-index: 10;
+}
+.analyzing-ring {
+  width: 80px; height: 80px;
+  border: 3px solid rgba(0,212,255,0.2);
+  border-top-color: var(--color-primary);
+  border-radius: 50%; animation: spin 1s linear infinite;
+}
+.analyzing-ring::before, .analyzing-ring::after {
+  content: '';
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: rgba(124,58,237,0.6);
+  animation: spin 1.5s linear infinite reverse;
+}
+.analyzing-ring::before { width: 56px; height: 56px; }
+.analyzing-ring::after { width: 32px; height: 32px; border-top-color: var(--color-accent); }
+
+.analyzing-text { color: var(--color-primary); font-weight: 600; font-size: 0.9rem; }
+.analyzing-subtext { color: var(--text-muted); font-size: 0.8rem; }
+
+/* Scanner actions */
+.scanner-actions {
+  display: none; gap: var(--space-sm); flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+.btn-xray {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 22px; border-radius: var(--radius-pill);
+  background: rgba(124,58,237,0.15);
+  border: 1px solid rgba(124,58,237,0.4);
+  color: var(--color-secondary-light);
+  font-weight: 600; font-size: 0.88rem;
+  transition: all var(--transition-base);
+}
+.btn-xray:hover {
+  background: rgba(124,58,237,0.25);
+  transform: translateY(-1px);
+}
+.btn-analyze {
+  padding: 10px 28px; border-radius: var(--radius-pill);
+  background: var(--grad-primary); color: #fff;
+  font-weight: 700; font-size: 0.9rem;
+  box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+  transition: all var(--transition-base);
+  display: flex; align-items: center; gap: 8px;
+}
+.btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,212,255,0.5); }
+.btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* Symptom voice input */
+.symptom-input-row {
+  display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg);
+  align-items: center;
+}
+.symptom-input {
+  flex: 1; padding: 12px 16px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  color: var(--text-primary); outline: none;
+  font-size: 0.9rem;
+  transition: border-color var(--transition-base);
+}
+.symptom-input:focus { border-color: var(--color-primary); }
+.symptom-input::placeholder { color: var(--text-muted); }
+.mic-btn {
+  padding: 12px 20px; border-radius: var(--radius-pill);
+  background: rgba(0,212,255,0.1);
+  border: 1px solid rgba(0,212,255,0.3);
+  color: var(--color-primary);
+  font-weight: 600; font-size: 0.85rem;
+  transition: all var(--transition-base);
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.mic-btn:hover { background: rgba(0,212,255,0.2); }
+.mic-btn.listening {
+  background: rgba(239,68,68,0.15);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  animation: pulse-badge 1s infinite;
+}
+
+/* Camera section */
+.camera-section {
+  display: none; margin-bottom: var(--space-lg);
+  border-radius: var(--radius-xl); overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: #000; position: relative;
+}
+#camera-video {
+  width: 100%; height: 300px; object-fit: cover; display: block;
+}
+.camera-controls {
+  display: flex; gap: var(--space-md); justify-content: center;
+  padding: var(--space-md);
+  background: rgba(0,0,0,0.6);
+}
+.btn-capture {
+  padding: 12px 32px; border-radius: var(--radius-pill);
+  background: var(--color-primary); color: #000;
+  font-weight: 700;
+}
+.btn-close-cam {
+  padding: 12px 20px; border-radius: var(--radius-pill);
+  background: rgba(239,68,68,0.2);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: var(--color-danger); font-weight: 600;
+}
+
+/* Result section */
+#result-section {
+  display: none; animation: slideUp 0.4s ease;
+}
+.result-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  transition: all var(--transition-base);
+}
+.result-critical-glow {
+  border-color: rgba(239,68,68,0.4);
+  box-shadow: 0 0 30px rgba(239,68,68,0.2);
+}
+.result-header {
+  display: flex; align-items: flex-start; gap: var(--space-md);
+  margin-bottom: var(--space-lg); flex-wrap: wrap;
+}
+.result-icon { font-size: 3rem; flex-shrink: 0; }
+.result-title-block { flex: 1; }
+.result-body-part { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 4px; }
+.result-disease {
+  font-family: var(--font-heading);
+  font-size: 1.5rem; font-weight: 800;
+  background: var(--grad-primary);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.result-badges { display: flex; flex-direction: column; gap: var(--space-sm); align-items: flex-end; }
+.result-description {
+  color: var(--text-secondary); font-size: 0.92rem;
+  line-height: 1.7; margin-bottom: var(--space-xl);
+  padding: var(--space-md); border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-color);
+}
+.result-sections { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); }
+.result-section h4 {
+  font-size: 0.95rem; font-weight: 700;
+  margin-bottom: var(--space-md); color: var(--text-heading);
+}
+.remedy-list { display: flex; flex-direction: column; gap: var(--space-sm); }
+.remedy-list li {
+  padding: 8px 14px;
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary); font-size: 0.88rem;
+}
+.remedy-list li::before { content: "🌱 "; }
+
+.ayurveda-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-md); }
+.ayurveda-card {
+  padding: var(--space-md);
+  background: rgba(124,58,237,0.08);
+  border: 1px solid rgba(124,58,237,0.25);
+  border-radius: var(--radius-md);
+}
+.ayurveda-name { font-weight: 700; font-size: 0.92rem; margin-bottom: 4px; }
+.ayurveda-sanskrit { color: var(--text-muted); font-size: 0.78rem; display: block; }
+.ayurveda-dosage, .ayurveda-use { font-size: 0.82rem; color: var(--text-secondary); margin-top: 3px; }
+
+.result-doctor {
+  background: rgba(0,212,255,0.05);
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+.doctor-recommendation {
+  display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap;
+}
+.doctor-type {
+  font-weight: 700; font-size: 1rem; color: var(--color-primary);
+}
+.doctor-urgent-badge {
+  padding: 4px 12px; border-radius: var(--radius-pill);
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: var(--color-danger); font-size: 0.78rem; font-weight: 600;
+}
+.btn-visit-doctor {
+  padding: 8px 20px; border-radius: var(--radius-pill);
+  background: var(--grad-primary); color: #fff;
+  font-size: 0.82rem; font-weight: 600;
+  transition: all var(--transition-base);
+  margin-left: auto;
+}
+.btn-visit-doctor:hover { transform: translateY(-2px); box-shadow: var(--shadow-glow); }
+
+.result-actions {
+  display: flex; gap: var(--space-md); flex-wrap: wrap;
+  margin-top: var(--space-xl); padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-color);
+}
+.btn-listen {
+  padding: 10px 24px; border-radius: var(--radius-pill);
+  background: rgba(0,212,255,0.1);
+  border: 1px solid rgba(0,212,255,0.3);
+  color: var(--color-primary); font-weight: 600; font-size: 0.88rem;
+  transition: all var(--transition-base);
+}
+.btn-listen:hover { background: rgba(0,212,255,0.2); }
+.btn-sos-trigger {
+  padding: 10px 24px; border-radius: var(--radius-pill);
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: var(--color-danger); font-weight: 700; font-size: 0.88rem;
+  animation: pulse-badge 1.5s infinite;
+  transition: all var(--transition-base);
+}
+
+/* ─── Chatbot Tab ─── */
+.chat-container {
+  display: flex; flex-direction: column;
+  height: calc(100vh - 220px);
+  min-height: 400px;
+}
+.chat-messages {
+  flex: 1; overflow-y: auto;
+  padding: var(--space-lg);
+  display: flex; flex-direction: column; gap: var(--space-md);
+  background: var(--bg-card); border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border: 1px solid var(--border-color);
+}
+.chat-msg {
+  display: flex; align-items: flex-end; gap: var(--space-sm);
+  animation: slideUp 0.3s ease;
+}
+.chat-msg-user { flex-direction: row-reverse; }
+.chat-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--bg-input);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+  border: 1px solid var(--border-color);
+}
+.chat-bubble-wrap { max-width: 75%; }
+.chat-bubble {
+  padding: 12px 16px; border-radius: 18px;
+  font-size: 0.9rem; line-height: 1.5;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+.chat-msg-user .chat-bubble {
+  background: rgba(0,212,255,0.12);
+  border-color: rgba(0,212,255,0.25);
+}
+.chat-time {
+  font-size: 0.7rem; color: var(--text-muted);
+  margin-top: 3px; text-align: right;
+}
+.chat-msg-user .chat-time { text-align: right; }
+.typing-dots span {
+  animation: blink 1.2s infinite;
+  font-size: 1.2rem; display: inline-block;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+
+.chat-input-area {
+  display: flex; gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
+#chat-input {
+  flex: 1; padding: 12px 16px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  color: var(--text-primary); outline: none; font-size: 0.9rem;
+}
+#chat-input:focus { border-color: var(--color-primary); }
+.btn-chat-send {
+  padding: 12px 20px; border-radius: var(--radius-pill);
+  background: var(--grad-primary); color: #fff;
+  font-weight: 700; font-size: 0.88rem;
+  transition: all var(--transition-base);
+}
+.btn-chat-send:hover { transform: scale(1.05); }
+#chat-mic-btn {
+  padding: 12px; border-radius: var(--radius-pill);
+  background: rgba(0,212,255,0.1);
+  border: 1px solid rgba(0,212,255,0.25);
+  color: var(--color-primary); font-size: 1.1rem;
+  transition: all var(--transition-base);
+}
+#chat-mic-btn:hover { background: rgba(0,212,255,0.2); }
+
+/* ─── History Tab ─── */
+.history-filters {
+  display: flex; gap: var(--space-md); flex-wrap: wrap;
+  margin-bottom: var(--space-lg); align-items: center;
+}
+.history-filter-group {
+  display: flex; align-items: center; gap: var(--space-sm);
+}
+.history-filter-label { color: var(--text-secondary); font-size: 0.82rem; }
+.history-actions-bar {
+  display: flex; gap: var(--space-md);
+  margin-bottom: var(--space-lg); flex-wrap: wrap;
+}
+.btn-clear-history {
+  padding: 8px 18px; border-radius: var(--radius-pill);
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: var(--color-danger); font-size: 0.82rem; font-weight: 600;
+  transition: all var(--transition-base);
+}
+.btn-clear-history:hover { background: rgba(239,68,68,0.2); }
+.btn-export-pdf {
+  padding: 8px 18px; border-radius: var(--radius-pill);
+  background: rgba(0,212,255,0.1);
+  border: 1px solid rgba(0,212,255,0.25);
+  color: var(--color-primary); font-size: 0.82rem; font-weight: 600;
+  transition: all var(--transition-base);
+}
+.btn-export-pdf:hover { background: rgba(0,212,255,0.2); }
+#history-list { display: flex; flex-direction: column; gap: var(--space-md); }
+.empty-history {
+  text-align: center; padding: var(--space-2xl);
+  color: var(--text-muted);
+}
+.empty-icon { font-size: 3rem; margin-bottom: var(--space-md); }
+.history-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  transition: all var(--transition-base);
+  animation: fadeIn 0.3s ease;
+}
+.history-card:hover { border-color: var(--border-hover); box-shadow: var(--shadow-glow); }
+.history-card-header { display: flex; gap: var(--space-md); align-items: flex-start; }
+.history-thumb {
+  width: 64px; height: 64px; flex-shrink: 0;
+  border-radius: var(--radius-md); overflow: hidden;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  display: flex; align-items: center; justify-content: center;
+}
+.history-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.history-thumb-placeholder { font-size: 2rem; }
+.history-info { flex: 1; }
+.history-member {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;
+}
+.history-date { margin-left: auto; }
+.history-disease { font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
+.history-body-part { color: var(--text-muted); font-size: 0.8rem; }
+.history-card-meta { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.history-card-actions {
+  display: flex; gap: var(--space-sm); margin-top: var(--space-sm);
+  justify-content: flex-end;
+}
+.btn-history-view {
+  padding: 5px 14px; border-radius: var(--radius-pill);
+  background: rgba(0,212,255,0.1);
+  border: 1px solid rgba(0,212,255,0.25);
+  color: var(--color-primary); font-size: 0.78rem; font-weight: 600;
+  transition: all var(--transition-base);
+}
+.btn-history-delete {
+  padding: 5px 10px; border-radius: var(--radius-pill);
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2);
+  color: var(--color-danger); font-size: 0.85rem;
+  transition: all var(--transition-base);
+}
+
+/* ─── Remedies / Ayurveda Tab ─── */
+.body-map-tabs {
+  display: flex; gap: var(--space-sm); flex-wrap: wrap;
+  margin-bottom: var(--space-lg);
+}
+.body-map-tab {
+  padding: 10px 20px; border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 0.88rem; font-weight: 500;
+  transition: all var(--transition-base);
+}
+.body-map-tab:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.body-map-tab.active {
+  background: rgba(0,212,255,0.12);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.body-map-title {
+  font-size: 1.1rem; font-weight: 700;
+  margin-bottom: var(--space-md); color: var(--text-heading);
+}
+.ayurveda-map-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-md);
+}
+.ayurveda-map-card {
+  padding: var(--space-lg);
+  background: var(--bg-glass);
+  border: 1px solid rgba(124,58,237,0.25);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+}
+.ayurveda-map-card:hover {
+  border-color: var(--color-secondary-light);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-glow-purple);
+}
+.ayurveda-map-name {
+  font-size: 1rem; font-weight: 700;
+  color: var(--color-secondary-light);
+  margin-bottom: var(--space-sm);
+}
+.ayurveda-map-use, .ayurveda-map-dosage {
+  font-size: 0.85rem; color: var(--text-secondary);
+  margin-top: 5px; line-height: 1.5;
+}
+
+/* ─── SOS Tab ─── */
+.sos-big-btn {
+  width: 100%; padding: var(--space-xl);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.15));
+  border: 2px solid rgba(239,68,68,0.5);
+  color: var(--color-danger);
+  font-family: var(--font-heading);
+  font-size: 1.5rem; font-weight: 900;
+  letter-spacing: 2px;
+  margin-bottom: var(--space-xl);
+  transition: all var(--transition-base);
+  position: relative; overflow: hidden;
+}
+.sos-big-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle, rgba(239,68,68,0.3) 0%, transparent 70%);
+  opacity: 0; transition: opacity var(--transition-base);
+}
+.sos-big-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 40px rgba(239,68,68,0.4);
+}
+.sos-big-btn:hover::before { opacity: 1; }
+
+.sos-section-title {
+  font-size: 1rem; font-weight: 700;
+  margin-bottom: var(--space-md); color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem;
+}
+.sos-contacts-grid { display: flex; flex-direction: column; gap: var(--space-md); }
+.sos-contact-card {
+  display: flex; align-items: center; gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+}
+.sos-contact-card:hover { border-color: var(--border-hover); }
+.sos-contact-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--grad-primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; font-weight: 800; color: #000;
+  flex-shrink: 0;
+}
+.sos-contact-info { flex: 1; }
+.sos-contact-name { font-weight: 700; margin-bottom: 2px; }
+.sos-contact-relation { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2px; }
+.sos-contact-phone { font-size: 0.85rem; color: var(--color-primary); }
+.sos-contact-actions { display: flex; gap: var(--space-sm); }
+.sos-call-icon {
+  padding: 8px 12px; border-radius: var(--radius-pill);
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.3);
+  color: var(--color-accent); font-size: 1rem;
+  transition: all var(--transition-fast);
+}
+.sos-call-icon:hover { background: rgba(16,185,129,0.2); }
+.sos-delete-btn {
+  padding: 8px 12px; border-radius: var(--radius-pill);
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2);
+  color: var(--color-danger);
+}
+
+.sos-add-form {
+  display: none; padding: var(--space-lg);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-lg);
+}
+.sos-add-form.open { display: block; animation: slideUp 0.3s ease; }
+.btn-add-contact {
+  padding: 10px 22px; border-radius: var(--radius-pill);
+  background: rgba(0,212,255,0.1);
+  border: 1px solid rgba(0,212,255,0.3);
+  color: var(--color-primary); font-weight: 600; font-size: 0.88rem;
+  margin-bottom: var(--space-lg);
+}
+.empty-contacts { text-align: center; padding: var(--space-xl); color: var(--text-muted); }
+
+.sos-helpline-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-md); margin-top: var(--space-lg);
+}
+.sos-helpline-card {
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  text-align: center; text-decoration: none;
+  transition: all var(--transition-base);
+}
+.sos-helpline-card:hover {
+  border-color: var(--color-danger);
+  transform: translateY(-3px);
+  box-shadow: 0 0 20px rgba(239,68,68,0.2);
+}
+.sos-helpline-icon { font-size: 1.8rem; margin-bottom: 6px; }
+.sos-helpline-name { font-weight: 600; font-size: 0.88rem; }
+.sos-helpline-num { font-size: 1.1rem; font-weight: 800; color: var(--color-danger); }
+
+/* ─── Profile Tab ─── */
+.family-members-grid { display: flex; flex-direction: column; gap: var(--space-md); }
+.family-card {
+  display: flex; align-items: center; gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-base);
+}
+.family-card:hover { border-color: var(--border-hover); }
+.family-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--grad-primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; font-weight: 800; color: #000;
+  flex-shrink: 0;
+}
+.family-info { flex: 1; }
+.family-name { font-weight: 700; }
+.family-meta { font-size: 0.82rem; color: var(--text-muted); }
+.family-delete-btn {
+  padding: 6px 10px; border-radius: var(--radius-pill);
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2);
+  color: var(--color-danger); font-size: 0.9rem;
+}
+
+.add-member-form {
+  display: none; padding: var(--space-lg);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-lg);
+}
+.add-member-form.open { display: block; animation: slideUp 0.3s ease; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+.btn-add-member {
+  padding: 10px 22px; border-radius: var(--radius-pill);
+  background: rgba(0,212,255,0.1);
+  border: 1px solid rgba(0,212,255,0.3);
+  color: var(--color-primary); font-weight: 600; font-size: 0.88rem;
+  margin-bottom: var(--space-lg);
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-save {
+  padding: 10px 22px; border-radius: var(--radius-pill);
+  background: var(--grad-primary); color: #fff;
+  font-weight: 700; font-size: 0.88rem;
+}
+.btn-cancel {
+  padding: 10px 22px; border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary); font-size: 0.88rem;
+}
+
+/* Profile settings card */
+.profile-settings-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-label { font-size: 0.9rem; font-weight: 500; }
+.settings-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ─── Mobile Responsive ─── */
+#sidebar-overlay {
+  display: none; position: fixed; inset: 0; z-index: 49;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+}
+
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.mobile-open { transform: translateX(0); }
+  #sidebar-overlay { display: block; pointer-events: none; }
+  .sidebar.mobile-open ~ #sidebar-overlay { pointer-events: all; }
+  .main-content { margin-left: 0; }
+  .hamburger-btn { display: block; }
+  .page-body { padding: var(--space-md); }
+  .form-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .result-header { flex-direction: column; }
+  .result-badges { flex-direction: row; align-items: center; }
+  .ayurveda-grid { grid-template-columns: 1fr; }
+  .result-actions { flex-direction: column; }
+  .history-card-header { flex-direction: column; }
+  .history-card-meta { flex-direction: row; }
+  .doctor-recommendation { flex-direction: column; align-items: flex-start; }
+  .btn-visit-doctor { margin-left: 0; }
+  .sos-helpline-grid { grid-template-columns: 1fr 1fr; }
+  .tab-title { font-size: 1.4rem; }
+}
+
+/* Clinical Symptom Chips */
+.btn-chip {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+/* ─── Lab Analyzer Range Gauges & Grid ─── */
+.biomarker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.range-gauge-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.gauge-track-wrap {
+  position: relative;
+  height: 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  overflow: visible;
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.gauge-zone {
+  height: 100%;
+}
+
+.gauge-zone.zone-low {
+  background: rgba(0, 212, 255, 0.2);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.gauge-zone.zone-green {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+.gauge-zone.zone-high {
+  background: rgba(239, 68, 68, 0.25);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.gauge-pin {
+  position: absolute;
+  top: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--color-primary);
+  box-shadow: 0 0 10px var(--color-primary);
+  transition: left 0.5s cubic-bezier(0.1, 0.8, 0.3, 1);
+}
+
+/* ─── Lab Analyzer: Patient Profile Grid ─── */
+.lab-profile-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--space-md);
+  align-items: end;
+}
+
+@media (max-width: 700px) {
+  .lab-profile-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── Ayurveda Map: Body Part Tabs ─── */
+.body-map-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+.body-map-tab:hover {
+  background: rgba(124, 58, 237, 0.12);
+  border-color: var(--color-secondary);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+.body-map-tab.active {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(0, 212, 255, 0.15));
+  border-color: var(--color-secondary);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
+}
+
+/* ─── Ayurveda Map: Medicine Info Panel ─── */
+.body-map-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+.ayurveda-map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-md);
+}
+.ayurveda-map-card {
+  background: rgba(255, 158, 11, 0.05);
+  border: 1px solid rgba(255, 158, 11, 0.18);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+.ayurveda-map-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(255, 158, 11, 0.12);
+}
+.ayurveda-map-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-warning);
+  margin-bottom: 8px;
+}
+.ayurveda-map-use {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+.ayurveda-map-dosage {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .ayurveda-map-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── SOS Section Title ─── */
+.sos-section-title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin: 0;
+}
+
+/* ─── SOS Add Form collapsible toggle ─── */
+#sos-add-form { display: none; }
+#sos-add-form.open { display: block; }

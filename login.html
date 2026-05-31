@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | HealLens AI</title>
+  <link rel="stylesheet" href="style/main.css">
+  <link rel="stylesheet" href="style/login.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Credentials Modal & Styling */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(8, 13, 26, 0.85); backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; opacity: 1; transition: opacity 0.3s;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px; width: 90%; max-width: 400px;
+      padding: 30px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalSlide {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 12px;
+    }
+    .modal-header h3 {
+      font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700;
+      color: white; margin: 0;
+    }
+    .close-btn {
+      background: transparent; border: none; color: rgba(255, 255, 255, 0.6);
+      font-size: 1.8rem; cursor: pointer; transition: color 0.2s;
+      line-height: 1;
+    }
+    .close-btn:hover { color: white; }
+    .modal-text {
+      color: rgba(255, 255, 255, 0.6); font-size: 0.85rem; line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .btn-save-creds {
+      width: 100%; padding: 14px;
+      background: linear-gradient(90deg, #00D4FF, #7C3AED);
+      border: none; border-radius: 12px;
+      color: white; font-weight: 700; font-size: 0.95rem;
+      cursor: pointer; transition: all 0.3s;
+      margin-top: 10px;
+      box-shadow: 0 8px 16px -8px rgba(0, 212, 255, 0.5);
+    }
+    .btn-save-creds:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 20px -8px rgba(0, 212, 255, 0.6);
+    }
+
+    /* Info Pill for Default Credentials */
+    .default-pill {
+      background: rgba(0, 212, 255, 0.04);
+      border: 1px solid rgba(0, 212, 255, 0.15);
+      border-radius: 14px; padding: 12px 16px;
+      margin-bottom: 24px; text-align: left;
+      font-size: 0.82rem; color: rgba(255, 255, 255, 0.7);
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .default-pill code {
+      font-family: monospace; color: #00D4FF; font-size: 0.88rem;
+      background: rgba(255, 255, 255, 0.05); padding: 2px 6px; border-radius: 4px;
+    }
+
+    /* Change Pass trigger */
+    .change-pass-trigger {
+      display: block; text-align: center; margin-top: 16px;
+      color: rgba(255, 255, 255, 0.4); font-size: 0.82rem; text-decoration: none;
+      transition: color 0.2s; cursor: pointer;
+    }
+    .change-pass-trigger:hover { color: #00D4FF; }
+
+    /* Custom Toast Alert style */
+    .toast-container {
+      position: fixed; top: 24px; right: 24px; z-index: 10000;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+      background: rgba(8, 13, 26, 0.95);
+      backdrop-filter: blur(12px);
+      border-left: 4px solid #7C3AED;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-left-width: 4px;
+      border-radius: 12px; padding: 16px 20px;
+      color: white; font-size: 0.9rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      min-width: 280px; display: flex; align-items: center; gap: 12px;
+      animation: toastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .toast.error { border-left-color: #ff4a4a; }
+    .toast.success { border-left-color: #00d4ff; }
+    @keyframes toastIn {
+      from { transform: translateX(50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="login-page">
+  
+  <div class="login-container">
+    <div class="login-box">
+      <div class="login-header">
+        <div class="login-logo">
+          <div class="logo-icon">🏥</div>
+          <h1 class="logo-text">HealLens</h1>
+        </div>
+        <p class="login-subtitle">Sign in to access your AI health records</p>
+      </div>
+
+      <div class="login-tabs">
+        <button class="tab-btn active" onclick="switchLoginTab('email')">Email</button>
+        <button class="tab-btn" onclick="switchLoginTab('phone')">Phone</button>
+      </div>
+
+      <!-- Default Credentials Display Pill -->
+      <div id="default-credentials-pill" class="default-pill">
+        <span style="font-weight: 700; color: white; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+          🔑 Authorized Portal Access Keys:
+        </span>
+        <span id="pill-credentials-display">
+          Email: <code>admin@heallens.com</code><br>
+          Password: <code>admin123</code>
+        </span>
+      </div>
+
+      <!-- Email Login Form -->
+      <form id="email-form" class="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="email" placeholder="admin@heallens.com" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="label-row">
+            <label for="password">Password</label>
+            <a href="#" class="forgot-link">Forgot?</a>
+          </div>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" placeholder="••••••••" required>
+            <button type="button" class="password-toggle" onclick="togglePassword()">👁️</button>
+          </div>
+        </div>
+        <div class="form-options">
+          <label class="checkbox-label">
+            <input type="checkbox" checked>
+            <span>Remember me</span>
+          </label>
+        </div>
+        <button type="submit" class="btn-login">Sign In →</button>
+        <a class="change-pass-trigger" onclick="toggleCredentialsModal(true)">⚙️ Change Default Credentials / Passcode</a>
+      </form>
+
+      <!-- Phone Login Form (Hidden by default) -->
+      <form id="phone-form" class="login-form hidden" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <div class="input-wrap">
+            <span class="input-icon">📱</span>
+            <input type="tel" id="phone" placeholder="+91 00000 00000">
+          </div>
+        </div>
+        <p class="phone-note">We'll send a 6-digit OTP to your phone.</p>
+        <button type="submit" class="btn-login">Send OTP →</button>
+      </form>
+
+      <div class="login-divider">
+        <span>Or continue with</span>
+      </div>
+
+      <div class="social-login">
+        <button class="social-btn google-btn">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_\"G\"_Logo.svg" alt="Google">
+          Google
+        </button>
+        <button class="social-btn apple-btn">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple">
+          Apple
+        </button>
+      </div>
+
+      <div class="login-footer">
+        Don't have an account? <a href="#">Create account</a>
+      </div>
+    </div>
+    
+    <div class="login-disclaimer">
+      ⚠️ Secure healthcare portal. By signing in, you agree to our Terms and HIPAA Privacy Policy.
+    </div>
+  </div>
+
+  <!-- Change Credentials Modal -->
+  <div id="credentials-modal" class="modal-overlay hidden" onclick="closeModalOnOutsideClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔒 Configure Portal Passcode</h3>
+        <button class="close-btn" onclick="toggleCredentialsModal(false)">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-text">Customize the primary access credentials for this diagnostic portal. If modified, these must be entered to access the clinical system in all future sessions.</p>
+        <form id="change-creds-form" onsubmit="saveCustomCredentials(event)">
+          <div class="form-group" style="text-align: left;">
+            <label for="new-email" style="display: block; margin-bottom: 6px;">New Access Email</label>
+            <input type="email" id="new-email" placeholder="admin@heallens.com" required style="padding-left: 16px;">
+          </div>
+          <div class="form-group" style="text-align: left;">
+            <label for="new-password" style="display: block; margin-bottom: 6px;">New Password</label>
+            <input type="password" id="new-password" placeholder="••••••••" required style="padding-left: 16px;">
+          </div>
+          <button type="submit" class="btn-save-creds">Save Access Credentials →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    function switchLoginTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector(`.tab-btn[onclick*="${tab}"]`).classList.add('active');
+      
+      if (tab === 'email') {
+        document.getElementById('email-form').classList.remove('hidden');
+        document.getElementById('phone-form').classList.add('hidden');
+      } else {
+        document.getElementById('email-form').classList.add('hidden');
+        document.getElementById('phone-form').classList.remove('hidden');
+      }
+    }
+
+    function togglePassword() {
+      const input = document.getElementById('password');
+      const btn = document.querySelector('.password-toggle');
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerText = '🙈';
+      } else {
+        input.type = 'password';
+        btn.innerText = '👁️';
+      }
+    }
+
+    // Modal Control
+    function toggleCredentialsModal(show) {
+      const modal = document.getElementById('credentials-modal');
+      if (show) {
+        modal.classList.remove('hidden');
+        // Show the email placeholder but NEVER reveal the stored password
+        document.getElementById('new-email').value = localStorage.getItem('heallens_email') || 'admin@heallens.com';
+        document.getElementById('new-password').value = ''; // Always blank — user must type new password
+        document.getElementById('new-password').placeholder = 'Enter new password';
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function closeModalOnOutsideClick(e) {
+      if (e.target.id === 'credentials-modal') {
+        toggleCredentialsModal(false);
+      }
+    }
+
+    // Toast Generator
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      const icon = type === 'success' ? '⚡' : '⚠️';
+      toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+      
+      container.appendChild(toast);
+      
+      // Auto remove toast
+      setTimeout(() => {
+        toast.style.animation = 'toastIn 0.3s reverse forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Save Custom Credentials
+    function saveCustomCredentials(e) {
+      e.preventDefault();
+      const newEmail = document.getElementById('new-email').value.trim();
+      const newPassword = document.getElementById('new-password').value;
+
+      if (!newEmail || !newPassword) {
+        showToast('Please fill out all fields.', 'error');
+        return;
+      }
+
+      localStorage.setItem('heallens_email', newEmail);
+      localStorage.setItem('heallens_password', newPassword);
+
+      // Clear actual login fields so user is forced to enter and remember them!
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
+
+      updateDefaultPill();
+      showToast('Portal passcode successfully updated! Enter this in future sessions.', 'success');
+      toggleCredentialsModal(false);
+    }
+
+    function updateDefaultPill() {
+      const isCustomEmail = localStorage.getItem('heallens_email');
+      const isCustomPassword = localStorage.getItem('heallens_password');
+      const pill = document.getElementById('default-credentials-pill');
+
+      if (isCustomEmail || isCustomPassword) {
+        // Hide pill when custom passcode is active!
+        if (pill) pill.style.display = 'none';
+      } else {
+        // Show pill when running defaults
+        if (pill) pill.style.display = 'block';
+        const pillCode = document.getElementById('pill-credentials-display');
+        if (pillCode) {
+          pillCode.innerHTML = `Email: <code>admin@heallens.com</code><br>Password: <code>admin123</code>`;
+        }
+      }
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      
+      const emailInput = document.getElementById('email').value.trim();
+      const passwordInput = document.getElementById('password').value;
+
+      const expectedEmail = localStorage.getItem('heallens_email') || 'admin@heallens.com';
+      const expectedPassword = localStorage.getItem('heallens_password') || 'admin123';
+
+      if (emailInput.toLowerCase() !== expectedEmail.toLowerCase() || passwordInput !== expectedPassword) {
+        showToast('Access Denied. Invalid email or passcode.', 'error');
+        return;
+      }
+
+      const btn = e.target.querySelector('.btn-login');
+      btn.innerHTML = '<span class="loader"></span> Access Granted...';
+      btn.disabled = true;
+
+      // Simulate network delay
+      setTimeout(() => {
+        window.location.href = 'dashboard.html';
+      }, 1200);
+    }
+
+    // DOM Initializer
+    document.addEventListener('DOMContentLoaded', () => {
+      const isCustomEmail = localStorage.getItem('heallens_email');
+      const isCustomPassword = localStorage.getItem('heallens_password');
+      
+      if (isCustomEmail || isCustomPassword) {
+        // Clear login inputs so user has to type and remember
+        document.getElementById('email').value = '';
+        document.getElementById('password').value = '';
+      } else {
+        // Autofill default credential details on initial session
+        document.getElementById('email').value = 'admin@heallens.com';
+        document.getElementById('password').value = 'admin123';
+      }
+      
+      updateDefaultPill();
+    });
+  </script>
+</body>
+</html>

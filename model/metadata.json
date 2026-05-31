@@ -1,0 +1,33 @@
+{
+  "classes": [
+    "arthritis",
+    "covid19",
+    "fracture",
+    "pneumonia",
+    "psoriasis",
+    "skin_infection",
+    "tuberculosis"
+  ],
+  "numClasses": 7,
+  "imageSize": 224,
+  "modelName": "HealLens_EfficientNetB0_v2",
+  "accuracy": 83.22,
+  "bodyPartMap": {
+    "pneumonia": "chest",
+    "tuberculosis": "chest",
+    "covid19": "chest",
+    "fracture": "bone",
+    "arthritis": "bone",
+    "skin_infection": "skin",
+    "psoriasis": "skin"
+  },
+  "diseaseNameMap": {
+    "pneumonia": "Pneumonia",
+    "tuberculosis": "Tuberculosis",
+    "covid19": "COVID-19",
+    "fracture": "Bone Fracture",
+    "arthritis": "Mild Arthritis",
+    "skin_infection": "Skin Infection",
+    "psoriasis": "Psoriasis/Rash"
+  }
+}

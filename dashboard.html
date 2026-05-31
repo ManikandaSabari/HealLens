@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HealLens Dashboard — AI Diagnostic Scanner</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+
+  <link rel="stylesheet" href="style/main.css" />
+  <link rel="stylesheet" href="style/dashboard.css" />
+
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+  <div class="dashboard-page">
+
+    <!-- ─── SIDEBAR ─── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-icon">🏥</div>
+        <div class="sidebar-logo-text">HealLens</div>
+      </div>
+
+      <div class="sidebar-lang">
+        <div class="lang-switcher">
+          <button class="lang-btn active" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="hi">हिं</button>
+          <button class="lang-btn" data-lang="ta">தமி</button>
+          <button class="lang-btn" data-lang="kn">ಕನ್ನ</button>
+        </div>
+      </div>
+
+      <div class="sidebar-nav">
+        <button class="nav-btn active" data-tab="scanner">
+          <span class="nav-icon">🔬</span>
+          <span class="nav-label" data-i18n="navScanner">Scanner</span>
+        </button>
+        <button class="nav-btn" data-tab="chatbot">
+          <span class="nav-icon">🤖</span>
+          <span class="nav-label" data-i18n="navChatbot">Health Assistant</span>
+        </button>
+        <button class="nav-btn" data-tab="lab-analyzer">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label" data-i18n="navLabAnalyzer">Report Analyzer</span>
+        </button>
+        <button class="nav-btn" data-tab="history">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label" data-i18n="navHistory">Clinical History</span>
+        </button>
+        <button class="nav-btn" data-tab="remedies">
+          <span class="nav-icon">🌿</span>
+          <span class="nav-label" data-i18n="navRemedies">Ayurveda Map</span>
+        </button>
+        <button class="nav-btn" data-tab="sos">
+          <span class="nav-icon">🚨</span>
+          <span class="nav-label" data-i18n="navSOS">Emergency SOS</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <span data-i18n="secureDataMsg">🔒 Your data is completely secure and encrypted.</span>
+      </div>
+    </aside>
+
+    <!-- ─── MAIN CONTENT ─── -->
+    <main class="main-content">
+
+      <div class="dashboard-topbar">
+        <div class="topbar-left">
+          <button class="hamburger-btn" id="hamburger-btn">☰</button>
+          <div class="topbar-title" id="topbar-title" data-i18n="navScanner">Scanner</div>
+        </div>
+        <div class="topbar-right">
+          <button id="voice-toggle-btn" class="top-action-btn" title="Toggle Voice Feedback">🔊</button>
+          <div class="topbar-badge">AI Engine Online</div>
+        </div>
+      </div>
+
+      <div class="page-body">
+
+        <!-- SCANNER TAB -->
+        <section id="tab-scanner" class="tab-content active">
+          <div class="tab-header">
+            <h2 class="tab-title" data-i18n="scannerTitle">AI Disease Scanner</h2>
+            <p class="tab-subtitle" data-i18n="scannerSubtitle">Upload a photo, X-ray, or open your camera to begin
+              diagnosis.</p>
+          </div>
+
+          <div class="scanner-top-bar">
+            <div class="member-select-wrap">
+              <span class="member-select-label" data-i18n="patientLabel">Patient:</span>
+              <select class="member-select" id="patient-select">
+                <option value="Self">Self</option>
+                <option value="Father">Father</option>
+                <option value="Mother">Mother</option>
+                <option value="Spouse">Spouse</option>
+                <option value="Child">Child</option>
+              </select>
+            </div>
+
+            <!-- BODY PART SELECTOR (FRIDAY EDIT) -->
+            <div class="member-select-wrap" style="margin-left: 20px;">
+              <span class="member-select-label" data-i18n="bodyPartLabel">Body Part:</span>
+              <select class="member-select" id="body-part-select">
+                <option value="none" selected disabled>Select Body Part</option>
+                <option value="chest">Lungs (Chest X-Ray)</option>
+                <option value="skin">Skin (Dermatology)</option>
+                <option value="bone">Bone (Orthopedic)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Upload Area -->
+          <div class="upload-area" id="upload-area">
+            <div class="upload-icon">📸</div>
+            <div class="upload-title" data-i18n="dragDropMsg">Drag & Drop Image Here</div>
+            <div class="upload-hint" data-i18n="supportedFormats">Supports JPG, PNG (Max 10MB)</div>
+            <div class="upload-or" data-i18n="orText">OR</div>
+            <div class="upload-actions">
+              <button class="btn btn-ghost" id="browse-btn" data-i18n="uploadXray">Upload X_Ray image</button>
+              <button class="btn btn-ghost" id="camera-btn">Open Camera</button>
+            </div>
+            <input type="file" id="file-input" hidden accept="image/*" />
+          </div>
+
+          <!-- Camera Section -->
+          <div class="camera-section" id="camera-section">
+            <video id="camera-video" autoplay playsinline></video>
+            <div class="camera-controls">
+              <button class="btn btn-capture" id="capture-btn" data-i18n="capturePhoto">📸 Capture</button>
+              <button class="btn btn-close-cam" id="close-cam-btn" data-i18n="cancel">✖ Cancel</button>
+            </div>
+          </div>
+
+          <!-- Preview & Analysis Area -->
+          <div class="scanner-preview-area" id="scanner-preview-area" style="display:none;">
+            <div class="xray-badge" id="xray-badge">X-RAY MODE</div>
+            <img id="image-preview" />
+            <canvas id="xray-canvas"></canvas>
+
+            <div class="analyzing-overlay" id="analyzing-overlay">
+              <div class="analyzing-ring"></div>
+              <div class="analyzing-text" data-i18n="analyzingText">AI is scanning...</div>
+              <div class="analyzing-subtext" id="analyzing-subtext">Detecting tissue patterns...</div>
+            </div>
+          </div>
+
+          <!-- Action Buttons (Moved Above Symptoms) -->
+          <div class="scanner-actions" id="scanner-actions" style="margin-top: 20px;">
+            <button class="btn btn-analyze" id="analyze-btn" data-i18n="analyzeBtn">
+              <span class="icon">🧠</span> Analyze Image
+            </button>
+            <button class="btn btn-ghost" id="scroll-to-symptoms-btn" data-i18n="addSymptomsBtn"
+              onclick="document.getElementById('symptoms-section').scrollIntoView({ behavior: 'smooth' })">
+              <span class="icon">➕</span> Add Symptoms
+            </button>
+          </div>
+
+          <!-- Symptom Inputs -->
+          <section id="symptoms-section"
+            style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <div class="tab-header">
+              <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-heading); margin-bottom: 10px;">Symptoms
+                Analysis</h3>
+            </div>
+            <div class="symptom-input-row">
+              <input type="text" class="symptom-input" id="symptom-input"
+                placeholder="Or type symptoms: e.g. night sweats, skin rash, cough..." />
+              <span style="font-size:0.78rem;color:var(--text-muted);">Voice:</span>
+              <button class="mic-btn" id="voice-scan-btn" aria-label="Speak symptoms">
+                <span class="mic-icon">🎙️</span>
+                <span data-i18n="speakSymptoms">Speak</span>
+              </button>
+            </div>
+
+            <!-- CLINICAL SYMPTOM RECORDS (FLATTENED) -->
+            <div style="margin-bottom: var(--space-xl);">
+
+              <!-- LUNG RECORDS -->
+              <div id="lung-chips" class="clinical-record-group" style="margin-bottom: 20px; display: none;">
+                <div
+                  style="font-size: 0.8rem; font-weight: 700; color: var(--accent-primary); text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid rgba(0,212,255,0.2); padding-bottom: 5px;">
+                  <span class="icon">🫁</span> Lung Diagnostic Records
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button class="btn-chip" onclick="addSymptomChip('Persistent Cough')" data-i18n="sym_cough">Persistent
+                    Cough</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Night Sweats')" data-i18n="sym_sweats">Night
+                    Sweats</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Chest Pain')" data-i18n="sym_chest_pain">Chest
+                    Pain</button>
+                  <button class="btn-chip" onclick="addSymptomChip('High Fever')" data-i18n="sym_fever">High
+                    Fever</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Breathlessness')"
+                    data-i18n="sym_breathless">Breathlessness</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Blood in Sputum')"
+                    data-i18n="sym_blood_sputum">Blood in Sputum</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Weight Loss')" data-i18n="sym_weight_loss">Weight
+                    Loss</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Yellow Phlegm')" data-i18n="sym_phlegm">Yellow
+                    Phlegm</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Loss of Taste')" data-i18n="sym_taste">Loss of
+                    Taste</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Extreme Fatigue')" data-i18n="sym_fatigue">Extreme
+                    Fatigue</button>
+                </div>
+              </div>
+
+              <!-- BONE RECORDS -->
+              <div id="bone-chips" class="clinical-record-group" style="margin-bottom: 20px; display: none;">
+                <div
+                  style="font-size: 0.8rem; font-weight: 700; color: var(--accent-secondary); text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid rgba(186,104,200,0.2); padding-bottom: 5px;">
+                  <span class="icon">🦴</span> Bone & Joint Records
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <!-- FRACTURE RECORDS -->
+                  <button class="btn-chip" onclick="addSymptomChip('Sudden Severe Pain')"
+                    data-i18n="sym_severe_pain">Sudden Severe Pain</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Swelling around Injury')"
+                    data-i18n="sym_swelling_injury">Swelling around Injury</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Bruising')"
+                    data-i18n="sym_bruising">Bruising</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Difficulty Moving')"
+                    data-i18n="sym_diff_moving">Difficulty Moving</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Tenderness')"
+                    data-i18n="sym_tenderness">Tenderness</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Deformity')"
+                    data-i18n="sym_deformity">Deformity</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Visible Disability')"
+                    data-i18n="sym_disability">Visible Disability</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Inability to Bear Weight')"
+                    data-i18n="sym_weight_bear">Inability to Bear Weight</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Crack/Snapping Sound')"
+                    data-i18n="sym_crack">Crack/Snapping Sound</button>
+
+                  <!-- ARTHRITIS RECORDS -->
+                  <button class="btn-chip" onclick="addSymptomChip('Mild Joint Pain')" data-i18n="sym_joint_pain">Mild
+                    Joint Pain</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Morning Stiffness')"
+                    data-i18n="sym_stiffness">Morning Stiffness</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Swelling around Joints')"
+                    data-i18n="sym_swelling_joints">Swelling around Joints</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Reduced Flexibility')"
+                    data-i18n="sym_flexibility">Reduced Flexibility</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Warmth around Joint')" data-i18n="sym_warmth">Warmth
+                    around Joint</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Clicking/Grinding')"
+                    data-i18n="sym_clicking">Clicking/Grinding</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Mild Discomfort')" data-i18n="sym_discomfort">Mild
+                    Discomfort</button>
+                </div>
+              </div>
+
+              <!-- SKIN RECORDS -->
+              <div id="skin-chips" class="clinical-record-group" style="display: none;">
+                <div
+                  style="font-size: 0.8rem; font-weight: 700; color: #ff9800; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid rgba(255,152,0,0.2); padding-bottom: 5px;">
+                  <span class="icon">🧴</span> Skin & Dermatology Records
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button class="btn-chip" onclick="addSymptomChip('Red Patches')" data-i18n="sym_red_patches">Red
+                    Patches</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Itching')" data-i18n="sym_itching">Itching</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Skin Rash')" data-i18n="sym_rash">Skin Rash</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Silvery Scales')" data-i18n="sym_scales">Silvery
+                    Scales</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Pus Discharge')" data-i18n="sym_pus">Pus
+                    Discharge</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Burning Sensation')" data-i18n="sym_burning">Burning
+                    Sensation</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Scaly Skin')" data-i18n="sym_scaly">Scaly
+                    Skin</button>
+                  <button class="btn-chip" onclick="addSymptomChip('Skin Boil')" data-i18n="sym_boil">Skin Boil</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+              <button class="btn btn-analyze" id="analyze-symptoms-btn" style="background: var(--grad-secondary);">
+                <span class="icon">🔍</span> Analyze Symptoms
+              </button>
+            </div>
+          </section>
+
+
+          <!-- RESULT SECTION -->
+          <!-- RESULT SECTION -->
+          <section id="result-section" style="display: none;">
+            <div class="result-card" id="result-card">
+              <div class="result-header">
+                <div class="result-icon" id="res-icon">🦠</div>
+                <div class="result-title-block">
+                  <div class="result-body-part" id="res-body-part">Chest X-Ray</div>
+                  <div class="result-disease" id="res-disease">Pneumonia</div>
+                </div>
+                <div class="result-badges">
+                  <div class="badge" id="res-severity-badge">High Severity</div>
+                  <div class="confidence-badge">
+                    <div class="conf-val" id="res-confidence">94%</div>
+                    <div class="conf-label" data-i18n="confidenceLabel">Confidence</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="result-description" id="res-description">
+                Analysis shows extensive fluid buildup in the lower lobes consistent with bacterial pneumonia.
+              </div>
+
+              <div class="result-sections">
+                <!-- NATURAL REMEDIES BOX -->
+                <div class="result-box"
+                  style="background: rgba(76, 175, 80, 0.05); border: 1px solid rgba(76, 175, 80, 0.2); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                  <h4
+                    style="color: #4caf50; font-family: var(--font-heading); font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                    <span>🍵</span> Natural Remedies to be Consumed
+                  </h4>
+                  <div id="res-remedies-natural">
+                    <!-- Injected via JS -->
+                  </div>
+                </div>
+
+                <!-- AYURVEDIC SUGGESTION BOX -->
+                <div class="result-box"
+                  style="background: rgba(255, 152, 0, 0.05); border: 1px solid rgba(255, 152, 0, 0.2); border-radius: 12px; padding: 20px;">
+                  <h4
+                    style="color: #ff9800; font-family: var(--font-heading); font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                    <span>🌿</span> Ayurvedic Suggestion
+                  </h4>
+                  <div id="res-remedies-ayurvedic">
+                    <!-- Injected via JS -->
+                  </div>
+                </div>
+              </div>
+
+              <div class="result-doctor" id="res-doctor-box" style="margin-top: 20px;">
+                <h4 style="margin-bottom: 8px;">Recommended Specialist</h4>
+                <div class="doctor-recommendation">
+                  <div class="doctor-type" id="res-doctor">Pulmonologist</div>
+                  <div class="doctor-urgent-badge" id="res-urgent-badge" style="display:none;">Urgent Visit Required
+                  </div>
+                  <a href="#" class="btn btn-visit-doctor" data-i18n="bookAppointment">Book Appointment →</a>
+                </div>
+              </div>
+
+              <div class="result-actions">
+                <button class="btn btn-listen" id="btn-read-aloud">
+                  <span class="icon">🔊</span> <span data-i18n="readAloud">Read Aloud</span>
+                </button>
+                <button class="btn btn-sos-trigger" id="btn-trigger-sos" style="display:none;">
+                  <span class="icon">🚨</span> <span data-i18n="triggerSOSBtn">Alert Emergency Contacts</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+        </section>
+
+        <!-- CHATBOT TAB -->
+        <section id="tab-chatbot" class="tab-content" style="display:none;">
+          <div class="tab-header">
+            <h2 class="tab-title" data-i18n="chatbotTitle">AI Health Assistant</h2>
+            <p class="tab-subtitle" data-i18n="chatbotSubtitle">Ask follow-up questions about your diagnosis or general
+              health.</p>
+          </div>
+          <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+              <!-- Messages go here -->
+            </div>
+            <div class="chat-input-area">
+              <input type="text" id="chat-input" placeholder="Type your question..." />
+              <button id="chat-mic-btn"><i class="fas fa-microphone"></i></button>
+              <button class="btn btn-chat-send" id="chat-send-btn">Send</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- LAB ANALYZER TAB -->
+        <section id="tab-lab-analyzer" class="tab-content" style="display:none;">
+          <div class="tab-header">
+            <h2 class="tab-title" data-i18n="labTitle">AI Lab Report Analyzer</h2>
+            <p class="tab-subtitle" data-i18n="labSubtitle">Upload your blood report or select a template to visualize
+              biomarker ranges, health risks, and Ayurvedic remedies.</p>
+          </div>
+
+          <!-- Simulated OCR Drop Zone -->
+          <div class="upload-area" id="lab-upload-area" style="margin-bottom: 30px;">
+            <div class="upload-icon">📊</div>
+            <div class="upload-title" data-i18n="uploadReport">Upload Lab Report</div>
+            <div class="upload-hint" data-i18n="supportedFormats">Supports JPG, PNG, PDF (Max 10MB)</div>
+            <div class="upload-or" data-i18n="orText">OR</div>
+            <div class="upload-actions">
+              <button class="btn btn-ghost" id="lab-browse-btn">Choose Document</button>
+            </div>
+            <input type="file" id="lab-file-input" hidden accept="image/*,application/pdf" />
+          </div>
+
+          <!-- Patient Information Form -->
+          <div class="profile-settings-card" style="margin-bottom: 30px;">
+            <h3 class="sos-section-title" data-i18n="patientProfileTitle" style="margin-bottom: 15px;">Patient
+              Information</h3>
+            <div class="lab-profile-grid">
+              <div class="form-group">
+                <label class="form-label" data-i18n="patientName"
+                  style="font-weight:600; margin-bottom:8px; display:block;">Full Name</label>
+                <input type="text" class="form-input" id="lab-patient-name" value="Jane Doe"
+                  placeholder="Enter patient name..." oninput="window.labAnalyzer?.updateName(this.value)" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="patientAge"
+                  style="font-weight:600; margin-bottom:8px; display:block;">Age</label>
+                <input type="number" class="form-input" id="lab-patient-age" value="30" min="1" max="120"
+                  oninput="window.labAnalyzer?.updateAge(this.value)" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="patientGender"
+                  style="font-weight:600; margin-bottom:8px; display:block;">Gender</label>
+                <select class="form-input" id="lab-patient-gender"
+                  style="background: var(--bg-glass); color: var(--text-primary); border: 1px solid var(--border-color); width: 100%; border-radius: var(--radius-md); padding: 8px 12px; height: 42px;"
+                  onchange="window.labAnalyzer?.updateGender(this.value)">
+                  <option value="female" data-i18n="genderFemale">Female</option>
+                  <option value="male" data-i18n="genderMale">Male</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sleek scanning/analyzing overlay (built-in container) -->
+          <div class="scanner-preview-area" id="lab-scanning-area"
+            style="display:none; min-height: 180px; margin-bottom: 30px;">
+            <div class="analyzing-overlay" id="lab-analyzing-overlay" style="display:flex;">
+              <div class="analyzing-ring"></div>
+              <div class="analyzing-text" data-i18n="scanningReport">Scanning report values...</div>
+              <div class="analyzing-subtext" id="lab-analyzing-subtext">Extracting hematology indexes...</div>
+            </div>
+          </div>
+
+          <!-- Sample Report Selector -->
+          <div class="profile-settings-card" style="margin-bottom: 30px;">
+            <h3 class="sos-section-title" data-i18n="loadSampleTitle" style="margin-bottom: 15px;">Load Sample Test
+              Profiles</h3>
+            <div class="upload-actions" style="justify-content: flex-start; gap: 10px;">
+              <button class="btn btn-ghost" onclick="window.labAnalyzer?.loadSample('healthy')">
+                <span class="icon">✅</span> <span data-i18n="sampleHealthy">Healthy CBC & Sugar</span>
+              </button>
+              <button class="btn btn-ghost" onclick="window.labAnalyzer?.loadSample('lipid')">
+                <span class="icon">⚠️</span> <span data-i18n="sampleLipid">High Cholesterol & Triglycerides</span>
+              </button>
+              <button class="btn btn-ghost" onclick="window.labAnalyzer?.loadSample('diabetic')">
+                <span class="icon">🚨</span> <span data-i18n="sampleDiabetic">Diabetes & Low Hemoglobin</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Interactive Biomarker List -->
+          <div class="result-card" id="lab-editor-card" style="margin-bottom: 30px;">
+            <h3 class="body-map-title" data-i18n="biomarkersTitle"
+              style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Report
+              Biomarkers</h3>
+
+            <div class="biomarker-grid" id="biomarker-inputs-container">
+              <!-- Dynamically generated inputs or hardcoded values so user can adjust -->
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+              <button class="btn btn-analyze" id="lab-run-analysis-btn">
+                <span class="icon">🧠</span> <span data-i18n="analyzeReportBtn">Run Analysis</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Results Dashboard -->
+          <div class="result-card" id="lab-result-card" style="display: none; margin-bottom: 30px;">
+
+            <!-- Visual Range comparison -->
+            <div id="lab-range-visualizer" style="margin-bottom: 30px;">
+              <!-- Gauge meters will be rendered here -->
+            </div>
+
+            <!-- Risk Predictor Output -->
+            <div class="result-box"
+              style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+              <h4
+                style="color: var(--color-danger); font-family: var(--font-heading); font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <span>🚨</span> <span data-i18n="riskPredictorTitle">AI Health Risk Profile</span>
+              </h4>
+              <div id="lab-risk-output" style="font-size: 0.92rem; line-height: 1.6;">
+                <!-- Predictor results -->
+              </div>
+            </div>
+
+            <!-- Simplifier Output -->
+            <div class="result-box"
+              style="background: rgba(0, 212, 255, 0.05); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+              <h4
+                style="color: var(--color-primary); font-family: var(--font-heading); font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <span>📄</span> <span data-i18n="simplifierTitle">Patient Report Simplifier</span>
+              </h4>
+              <div id="lab-simplifier-output"
+                style="font-size: 0.92rem; line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
+                <!-- Simplified statements -->
+              </div>
+            </div>
+
+            <!-- Ayurvedic Suggestions Box -->
+            <div class="result-box"
+              style="background: rgba(255, 158, 11, 0.05); border: 1px solid rgba(255, 158, 11, 0.2); border-radius: 12px; padding: 20px;">
+              <h4
+                style="color: var(--color-warning); font-family: var(--font-heading); font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <span>🌿</span> <span data-i18n="ayurRemediesTitle">Ayurvedic Balancing Suggestions</span>
+              </h4>
+              <div class="ayurveda-grid" id="lab-ayurveda-output">
+                <!-- Suggestion cards -->
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- HISTORY TAB -->
+        <section id="tab-history" class="tab-content" style="display:none;">
+          <div class="tab-header">
+            <h2 class="tab-title" data-i18n="historyTitle">Clinical History</h2>
+            <p class="tab-subtitle" data-i18n="historySubtitle">Review past scans for all family members.</p>
+          </div>
+          <div class="history-actions-bar">
+            <button class="btn btn-export-pdf" id="btn-export-history">📄 Export Report</button>
+            <button class="btn btn-clear-history" id="btn-clear-history">🗑️ Clear History</button>
+          </div>
+          <div id="history-list">
+            <!-- Injected via JS -->
+          </div>
+        </section>
+
+        <!-- REMEDIES TAB -->
+        <section id="tab-remedies" class="tab-content" style="display:none;">
+          <div class="tab-header">
+            <h2 class="tab-title" data-i18n="remediesTitle">Ayurveda Medicine Map</h2>
+            <p class="tab-subtitle" data-i18n="remediesSubtitle">Explore natural treatments mapped to the human body.
+            </p>
+          </div>
+          <!-- Body part selector tabs -->
+          <div id="body-map-tabs" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px;">
+            <!-- Injected via JS -->
+          </div>
+          <!-- Medicine info panel -->
+          <div id="body-map-info" class="result-card">
+            <!-- Injected via JS -->
+          </div>
+        </section>
+
+        <!-- SOS TAB -->
+        <section id="tab-sos" class="tab-content" style="display:none;">
+          <div class="tab-header">
+            <h2 class="tab-title" data-i18n="sosTitle">Emergency SOS Control</h2>
+            <p class="tab-subtitle" data-i18n="sosSubtitle">Manage emergency contacts and rapid response alerts.</p>
+          </div>
+
+          <!-- Big SOS Trigger Button -->
+          <button class="sos-big-btn" id="sos-big-btn" onclick="triggerManualSOS()" data-i18n="triggerSOSNowBtn">
+            🚨 TRIGGER SOS NOW
+          </button>
+
+          <!-- Quick Emergency Dial -->
+          <div class="result-card" style="margin-bottom: 24px;">
+            <h3 class="sos-section-title" style="margin-bottom: 14px;">⚡ Quick Emergency Dial</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+              <a href="tel:108" class="btn btn-ghost"
+                style="flex:1; min-width:140px; justify-content:center; color:#ef4444; border-color:rgba(239,68,68,0.4);">
+                📞 Ambulance — 108
+              </a>
+              <a href="tel:112" class="btn btn-ghost"
+                style="flex:1; min-width:140px; justify-content:center; color:#f97316; border-color:rgba(249,115,22,0.4);">
+                📞 Emergency — 112
+              </a>
+              <a href="tel:104" class="btn btn-ghost"
+                style="flex:1; min-width:140px; justify-content:center; color:#00d4ff; border-color:rgba(0,212,255,0.4);">
+                📞 Healthline — 104
+              </a>
+            </div>
+          </div>
+
+          <!-- Add Contact Section -->
+          <div class="result-card" style="margin-bottom: 24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 class="sos-section-title">👥 Emergency Contacts <span
+                  style="font-size:0.78rem; color:var(--text-muted); font-weight:400;">(max 3)</span></h3>
+              <button class="btn btn-ghost" style="padding: 8px 16px; font-size:0.85rem;"
+                onclick="document.getElementById('sos-add-form').classList.toggle('open')">
+                ➕ <span data-i18n="addContact">Add Contact</span>
+              </button>
+            </div>
+
+            <!-- Add Contact Form (collapsible) -->
+            <div id="sos-add-form"
+              style="margin-bottom:20px; padding:18px; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:14px;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-weight:600; margin-bottom:6px; display:block;"
+                    data-i18n="contactName">Name</label>
+                  <input type="text" class="form-input" id="sos-contact-name" placeholder="e.g. Ravi Kumar" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-weight:600; margin-bottom:6px; display:block;"
+                    data-i18n="contactPhone">Phone</label>
+                  <input type="tel" class="form-input" id="sos-contact-phone" placeholder="e.g. 9876543210" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-weight:600; margin-bottom:6px; display:block;"
+                    data-i18n="contactRelation">Relation</label>
+                  <input type="text" class="form-input" id="sos-contact-relation" placeholder="e.g. Father" />
+                </div>
+              </div>
+              <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button class="btn btn-ghost" style="padding:8px 18px;"
+                  onclick="document.getElementById('sos-add-form').classList.remove('open')"
+                  data-i18n="cancel">Cancel</button>
+                <button class="btn btn-analyze" style="padding:8px 20px;" onclick="submitSOSContact()">💾 Save
+                  Contact</button>
+              </div>
+            </div>
+
+            <!-- Contacts List -->
+            <div id="sos-contacts-list">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+        </section>
+
+      </div> <!-- end .page-body -->
+    </main>
+  </div>
+
+  <!-- SYMPTOM PROACTIVE MODAL (FRIDAY EDIT) -->
+  <div id="symptom-prompt-modal" class="sos-overlay" style="display:none; z-index: 100000;">
+    <div class="sos-overlay-content glass-card" style="max-width: 500px; padding: 40px; text-align: center;">
+      <div style="font-size: 3rem; margin-bottom: 20px;">⚠️</div>
+      <h3 style="font-family: var(--font-heading); font-size: 1.8rem; margin-bottom: 15px; color: #fff;"
+        data-i18n="clinicalContextTitle">Clinical Context Needed</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 30px; line-height: 1.6;">
+        <span data-i18n="symptomModalPart1">Based on the uploaded image the AI predicts you might have</span>
+        <strong id="modal-disease-guess" style="color: var(--color-primary);">Scanning...</strong>.
+        <span data-i18n="symptomModalPart2">But still most of the similar disease have same kind of x-ray image, add
+          symptoms to predict more accurately.</span>
+      </p>
+      <div style="display: flex; gap: 15px;">
+        <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="closeSymptomModal(true)"
+          data-i18n="addSymptomsBtn">Add Symptoms</button>
+        <button class="btn btn-secondary" style="flex: 1; justify-content: center;" onclick="closeSymptomModal(false)"
+          data-i18n="analyzeAnywayBtn">Analyze Anyway</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY PART WARNING MODAL (NEW) -->
+  <div id="body-part-warning-modal" class="sos-overlay" style="display:none; z-index: 100001;">
+    <div class="sos-overlay-content glass-card" style="max-width: 500px; padding: 40px; text-align: center;">
+      <div style="font-size: 3rem; margin-bottom: 20px;">🛡️</div>
+      <h3 style="font-family: var(--font-heading); font-size: 1.8rem; margin-bottom: 15px; color: #fff;"
+        data-i18n="medicalSelectionTitle">Medical Selection Required</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 30px; line-height: 1.6;" data-i18n="bodyPartWarningMsg">
+        Clinical Requirement: Please select the <strong>Body Part</strong> (Lungs, Bone, or Skin) before analyzing the
+        image to ensure diagnostic accuracy.
+      </p>
+      <div style="display: flex; gap: 15px;">
+        <button class="btn btn-primary" style="flex: 1; justify-content: center;"
+          onclick="document.getElementById('body-part-warning-modal').style.display = 'none'; document.getElementById('body-part-select').focus();"
+          data-i18n="selectNowBtn">Select Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCTOR APPOINTMENT BOOKING MODAL (NEW) -->
+  <div id="doctor-booking-modal" class="sos-overlay" style="display:none; z-index: 100002; background: rgba(8, 13, 26, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+    <div class="sos-overlay-content glass-card" style="max-width: 550px; width: 90%; padding: 30px; text-align: left; border: 1px solid rgba(0, 212, 255, 0.25); box-shadow: var(--shadow-glow);">
+      
+      <!-- Close button -->
+      <button onclick="window.appointmentManager?.closeModal()" style="position: absolute; top: 20px; right: 20px; background: transparent; color: var(--text-secondary); font-size: 1.5rem; transition: color var(--transition-fast);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-secondary)'">✕</button>
+
+      <!-- Booking Form View -->
+      <div id="booking-form-view">
+        <h3 style="font-family: var(--font-heading); font-size: 1.6rem; color: #fff; margin-bottom: 5px; display: flex; align-items: center; gap: 10px;">
+          <span>📅</span> Book Specialist Appointment
+        </h3>
+        <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 20px;">
+          Select a specialist below to schedule your consultation slot.
+        </p>
+
+        <!-- Specialty Indicator -->
+        <div style="background: rgba(0, 212, 255, 0.08); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-primary); font-weight: 700; letter-spacing: 0.5px;">Recommended Specialty</span>
+            <div id="booking-specialty-name" style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-top: 2px;">Pulmonologist</div>
+          </div>
+          <span id="booking-specialty-icon" style="font-size: 2rem;">🫁</span>
+        </div>
+
+        <!-- Doctor Selection Title -->
+        <h4 style="font-size: 0.95rem; color: #fff; font-weight: 600; margin-bottom: 10px;">Available Doctors:</h4>
+        
+        <!-- Doctor Cards Grid -->
+        <div id="booking-doctors-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; max-height: 180px; overflow-y: auto; padding-right: 4px;">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Details Form -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Patient Name</label>
+            <select id="booking-patient" class="form-select" style="padding: 10px 14px; font-size: 0.85rem; height: 42px;">
+              <!-- Loaded dynamically from family members -->
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Appointment Date</label>
+            <input type="date" id="booking-date" class="form-input" style="padding: 10px 14px; font-size: 0.85rem; height: 42px;" />
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn btn-ghost" style="padding: 10px 22px; font-size: 0.88rem;" onclick="window.appointmentManager?.closeModal()">Cancel</button>
+          <button class="btn btn-primary" style="padding: 10px 26px; font-size: 0.88rem;" onclick="window.appointmentManager?.confirmBooking()">Confirm Booking</button>
+        </div>
+      </div>
+
+      <!-- Success Confirmation View -->
+      <div id="booking-success-view" style="display: none; text-align: center; padding: 20px 10px;">
+        <div style="width: 80px; height: 80px; background: rgba(16, 185, 129, 0.1); border: 2px solid var(--color-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);">
+          <span style="font-size: 2.8rem; color: var(--color-accent); animation: float 2s ease-in-out infinite;">✓</span>
+        </div>
+        <h3 style="font-family: var(--font-heading); font-size: 1.7rem; color: #fff; margin-bottom: 10px;">Appointment Confirmed!</h3>
+        <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 25px; line-height: 1.6;">
+          Your appointment has been successfully scheduled. An SMS confirmation was sent to your registered mobile number.
+        </p>
+
+        <!-- Summary Details Box -->
+        <div class="glass-card" style="padding: 20px; background: rgba(255,255,255,0.02); text-align: left; margin-bottom: 25px; border-color: rgba(255,255,255,0.05);">
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-secondary);">Booking ID:</span><strong id="summary-booking-id" style="color: var(--color-primary);">HL-90812</strong></div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-secondary);">Specialist:</span><strong id="summary-doctor-name" style="color: #fff;">Dr. Arvind Swamy</strong></div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-secondary);">Department:</span><strong id="summary-department" style="color: #fff;">Pulmonology</strong></div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-secondary);">Patient:</span><strong id="summary-patient" style="color: #fff;">Self</strong></div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-secondary);">Date & Time:</span><strong id="summary-datetime" style="color: var(--color-primary);">June 1, 2026 at 11:30 AM</strong></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="padding: 12px 40px; font-size: 0.92rem; width: 100%; justify-content: center;" onclick="window.appointmentManager?.closeModal()">Done</button>
+      </div>
+
+    </div>
+  </div>
+
+
+
+  <!-- TensorFlow.js — required for CNN model inference -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+
+  <script src="js/i18n.js?v=2.0"></script>
+  <script src="js/ai-engine.js?v=2.0"></script>
+  <script src="js/scanner.js?v=2.0"></script>
+  <script src="js/voice.js?v=2.0"></script>
+  <script src="js/history.js?v=2.0"></script>
+  <script src="js/sos.js?v=2.0"></script>
+  <script src="js/chatbot.js?v=2.0"></script>
+  <script src="js/lab-analyzer.js?v=2.0"></script>
+  <script src="js/appointment.js?v=2.0"></script>
+  <script src="js/app.js?v=2.0"></script>
+</body>
+
+</html>
