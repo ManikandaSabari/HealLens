@@ -602,7 +602,164 @@ class AIEngine {
   getEmbeddedDatabase() {
     return {
       "chest": {
-        "Pneumonia": { "id": "pneumonia", "name": "Pneumonia", "severity": "moderate", "description": {"en": "Lung infection."}, "remedies": {"en": []}, "ayurveda": [] }
+        "Pneumonia": {
+          "id": "pneumonia",
+          "bodyPart": "chest",
+          "description": {
+            "en": "Pneumonia is an infection that inflames the air sacs in one or both lungs, which may fill with fluid or pus causing breathing difficulty."
+          },
+          "symptoms": ["fever", "cough", "breathlessness", "chest pain", "fatigue"],
+          "severity": "moderate",
+          "remedies": {
+            "en": [
+              { "name": "Ginger Tea", "ingredients": "Fresh ginger, Water, Honey", "method": "Slice fresh ginger. Boil in water for 10–15 minutes. Strain and add honey.", "use": "Consumed warm to help with cough and congestion." },
+              { "name": "Steam Inhalation", "ingredients": "Hot water, Bowl", "method": "Pour hot water into a bowl. Carefully inhale steam for 5–10 minutes.", "use": "Used to loosen mucus and ease breathing discomfort." },
+              { "name": "Turmeric Milk", "ingredients": "Milk, Turmeric powder, Black pepper", "method": "Heat milk. Add turmeric and pepper. Stir well.", "use": "Consumed warm for throat comfort and inflammation support." },
+              { "name": "Warm Soup / Broth", "ingredients": "Vegetables or chicken, Water, Mild spices", "method": "Boil ingredients until soft. Simmer well and serve warm.", "use": "Helps hydration and provides nutrition during illness." }
+            ]
+          },
+          "ayurveda": [
+            { "name": "Sitopaladi Churna", "sanskrit": "सितोपलादि चूर्ण", "dosage": "3g with honey, twice daily", "use": "Respiratory infections" },
+            { "name": "Vasavaleha", "sanskrit": "वासावलेह", "dosage": "1 tsp twice daily", "use": "Lung strengthening" }
+          ],
+          "doctorType": "Pulmonologist"
+        },
+        "Tuberculosis": {
+          "id": "tuberculosis",
+          "bodyPart": "chest",
+          "description": {
+            "en": "Tuberculosis (TB) is a serious bacterial infection primarily affecting the lungs. Note: Medical treatment is essential; natural remedies are supportive only."
+          },
+          "symptoms": ["persistent cough", "blood in sputum", "night sweats", "weight loss", "fatigue"],
+          "severity": "critical",
+          "remedies": {
+            "en": [
+              { "name": "Garlic Water", "ingredients": "Garlic cloves, Warm water", "method": "Crush garlic cloves. Add to warm water. Let sit briefly before drinking.", "use": "Traditionally consumed for respiratory support." },
+              { "name": "Amla Juice", "ingredients": "Fresh amla, Water, Honey", "method": "Blend amla with water. Strain the juice. Add honey if desired.", "use": "Consumed for vitamin C and immune support." },
+              { "name": "Mint Tea", "ingredients": "Mint leaves, Water", "method": "Boil mint leaves in water. Simmer for several minutes. Strain before drinking.", "use": "Used for breathing comfort and freshness." },
+              { "name": "Protein-Rich Soup", "ingredients": "Lentils or chicken, Vegetables, Water", "method": "Boil ingredients thoroughly. Simmer until soft. Serve warm.", "use": "Supports nutrition and recovery strength." }
+            ]
+          },
+          "ayurveda": [
+            { "name": "Chyawanprash", "sanskrit": "च्यवनप्राश", "dosage": "2 tsp with warm milk, morning", "use": "Immunity and lung health" },
+            { "name": "Pippalyadi Vati", "sanskrit": "पिಪ್ಪಲ್ಯಾದಿ ವಟಿ", "dosage": "2 tablets twice daily", "use": "TB and respiratory infections" }
+          ],
+          "doctorType": "Pulmonologist / Infectious Disease Specialist"
+        },
+        "COVID-19": {
+          "id": "covid19",
+          "bodyPart": "chest",
+          "description": {
+            "en": "COVID-19 is a viral respiratory illness caused by SARS-CoV-2, affecting lungs and causing fever, dry cough, and fatigue."
+          },
+          "symptoms": ["fever", "dry cough", "fatigue", "loss of smell", "breathlessness"],
+          "severity": "moderate",
+          "remedies": {
+            "en": [
+              { "name": "Nilavembu Kudineer", "ingredients": "Nilavembu Kudineer powder, Water", "method": "Add 5–10 g powder to water. Boil until reduced by half. Filter and drink warm.", "use": "Widely consumed for immune and fever support." },
+              { "name": "Salt Water Gargle", "ingredients": "Warm water, Salt", "method": "Mix salt into warm water. Gargle for 20–30 seconds.", "use": "Used for sore throat relief." },
+              { "name": "Lemon Honey Drink", "ingredients": "Warm water, Lemon juice, Honey", "method": "Add lemon juice to warm water. Mix honey well.", "use": "Consumed for throat comfort and hydration." },
+              { "name": "Turmeric Ginger Tea", "ingredients": "Ginger, Turmeric, Water", "method": "Boil ginger and turmeric in water. Simmer for 10 minutes. Strain before drinking.", "use": "Traditionally consumed for warmth and respiratory comfort." }
+            ]
+          },
+          "ayurveda": [
+            { "name": "Giloy Ghanvati", "sanskrit": "गिलोय घनवटी", "dosage": "2 tablets twice daily after meals", "use": "Antiviral and immunity booster" },
+            { "name": "Anu Tailam", "sanskrit": "ಅಣು ತೈಲಂ", "dosage": "2 drops in each nostril, morning", "use": "Nasal cleansing" }
+          ],
+          "doctorType": "General Physician / Pulmonologist"
+        }
+      },
+      "bone": {
+        "Bone Fracture": {
+          "id": "fracture",
+          "bodyPart": "bone",
+          "description": {
+            "en": "A bone fracture is a break or crack in a bone. Note: Fracture needs proper medical treatment (casting/surgery); remedies are supportive."
+          },
+          "symptoms": ["severe pain", "swelling", "bruising", "deformity", "inability to move"],
+          "severity": "critical",
+          "remedies": {
+            "en": [
+              { "name": "Calcium-Rich Milk", "ingredients": "Milk, Turmeric, Honey", "method": "Warm the milk slightly. Add turmeric and mix well. Add honey if needed.", "use": "Supports bone healing by providing calcium and protein." },
+              { "name": "Sesame Seed Mix", "ingredients": "Sesame seeds, Jaggery or honey", "method": "Roast sesame seeds lightly. Mix with jaggery or honey. Eat in small portions.", "use": "Rich in calcium and supports bone strength." },
+              { "name": "Egg / Protein Soup", "ingredients": "Eggs or lentils, Vegetables, Water", "method": "Boil ingredients well. Cook into soft soup. Serve warm.", "use": "Helps tissue and bone repair." },
+              { "name": "Turmeric Ginger Drink", "ingredients": "Ginger, Turmeric, Water", "method": "Boil ginger and turmeric in water. Strain and drink warm.", "use": "Helps reduce inflammation and pain." }
+            ]
+          },
+          "ayurveda": [
+            { "name": "Laksha Guggulu", "sanskrit": "लाक्षा गुग्गुलु", "dosage": "2 tablets twice daily with warm milk", "use": "Bone healing and fracture recovery" },
+            { "name": "Asthisamharaka", "sanskrit": "ಅಸ್ಥಿಸಂಹಾರಕ", "dosage": "5g powder with warm milk, twice daily", "use": "Bone knitting" }
+          ],
+          "doctorType": "Orthopedic Surgeon"
+        },
+        "Mild Arthritis": {
+          "id": "arthritis",
+          "bodyPart": "bone",
+          "description": {
+            "en": "Arthritis causes inflammation of joints resulting in pain, stiffness, and reduced mobility."
+          },
+          "symptoms": ["joint pain", "stiffness", "swelling", "redness", "limited range of motion"],
+          "severity": "mild",
+          "remedies": {
+            "en": [
+              { "name": "Turmeric Milk", "ingredients": "Milk, Turmeric powder, Black pepper", "method": "Heat milk. Add turmeric and pepper. Stir well.", "use": "Helps reduce joint inflammation." },
+              { "name": "Ginger Tea", "ingredients": "Fresh ginger, Water, Honey", "method": "Boil ginger in water for 10–15 minutes. Strain and drink warm.", "use": "May reduce joint pain and stiffness." },
+              { "name": "Epsom Salt Bath", "ingredients": "Warm water, Epsom salt", "method": "Add Epsom salt to warm water. Soak joints for 15–20 minutes.", "use": "Helps relax muscles and reduce stiffness." },
+              { "name": "Fenugreek Water", "ingredients": "Fenugreek seeds, Water", "method": "Soak seeds overnight. Boil or drink soaked water.", "use": "Traditionally used for joint pain relief." }
+            ]
+          },
+          "ayurveda": [
+            { "name": "Mahayogaraj Guggulu", "sanskrit": "महायोगराज गुग्गुलु", "dosage": "2 tablets twice daily with warm water", "use": "Joint pain and arthritis" },
+            { "name": "Shallaki", "sanskrit": "ಶಲ್ಲಕಿ", "dosage": "400mg capsule, twice daily", "use": "Reduces joint inflammation" }
+          ],
+          "doctorType": "Rheumatologist"
+        }
+      },
+      "skin": {
+        "Skin Infection": {
+          "id": "skin_infection",
+          "bodyPart": "skin",
+          "description": {
+            "en": "Active bacterial, viral, or fungal skin pathogen detected (indicative of cellulitis, impetigo, or acute dermatitis). The epidermal and dermal layers show acute localized vascular dilation (erythema) with dynamic inflammatory fluid infiltration. This causes high localized warmth, redness, and swelling as the body's white blood cells combat the pathogen. Prompt topical or systemic antimicrobial therapy is recommended to prevent spreading to deeper subcutaneous tissues."
+          },
+          "symptoms": ["redness", "swelling", "warmth", "pus discharge", "pain"],
+          "severity": "mild",
+          "remedies": {
+            "en": [
+              { "name": "Neem Wash", "ingredients": "Neem leaves, Water", "method": "Boil neem leaves in water, cool and use to wash infected area.", "use": "Natural antiseptic wash." },
+              { "name": "Aloe Vera Gel", "ingredients": "Pure Aloe Vera", "method": "Apply fresh gel to affected area for cooling and healing.", "use": "Soothes inflammation and itching." },
+              { "name": "Turmeric Paste", "ingredients": "Turmeric, Water/Honey", "method": "Make a paste and apply to infection for 20 mins then wash.", "use": "Natural antibacterial treatment." },
+              { "name": "Warm Salt Compress", "ingredients": "Warm water, Salt, Cloth", "method": "Dip cloth in salt water and apply to area to reduce swelling.", "use": "Helps draw out infection and pus." }
+            ]
+          },
+          "ayurveda": [
+            { "name": "Neem Ghanvati", "sanskrit": "नीम घनवटी", "dosage": "2 tablets twice daily", "use": "Blood purification" },
+            { "name": "Manjishtha", "sanskrit": "ಮಂಜಿಷ್ಠ", "dosage": "1g powder twice daily", "use": "Skin detox and healing" }
+          ],
+          "doctorType": "Dermatologist"
+        },
+        "Psoriasis/Rash": {
+          "id": "psoriasis",
+          "bodyPart": "skin",
+          "description": {
+            "en": "Chronic autoimmune-mediated epidermal hyperplasia observed (highly consistent with Psoriasis Vulgaris or severe atopic Dermatitis). The visual texture signature indicates localized hyperkeratosis (silvery scaly buildup) combined with underlying capillary dilation. This condition involves accelerated skin cell turnover triggered by inflammatory cytokines. Maintaining skin barrier moisture is essential, and systemic or topical immune modulation should be evaluated by a dermatologist."
+          },
+          "symptoms": ["red patches", "silvery scales", "dry cracked skin", "itching", "burning"],
+          "severity": "moderate",
+          "remedies": {
+            "en": [
+              { "name": "Coconut-Turmeric Mix", "ingredients": "Coconut oil, Turmeric", "method": "Mix and apply to affected areas.", "use": "Soothes itching and reduces scales." },
+              { "name": "Oatmeal Bath", "ingredients": "Colloidal oatmeal, Warm water", "method": "Soak in a lukewarm bath with oatmeal for 15 minutes.", "use": "Relieves itching and softens scales." },
+              { "name": "Aloe Vera Application", "ingredients": "Pure Aloe Vera", "method": "Apply gel 3 times daily to scaly patches.", "use": "Reduces redness and scaling." },
+              { "name": "Apple Cider Vinegar", "ingredients": "ACV, Water (1:1 ratio)", "method": "Dab diluted solution onto itchy patches then rinse.", "use": "Helps with scalp and skin itching." }
+            ]
+          },
+          "ayurveda": [
+            { "name": "Khadirarishta", "sanskrit": "खदिरारिष्ट", "dosage": "20ml with equal water", "use": "Skin conditions" },
+            { "name": "Panchatikta Ghrita", "sanskrit": "ಪಂಚತಿಕ್ತ ಘೃತ", "dosage": "1 tsp with warm water", "use": "Detoxifies skin tissues" }
+          ],
+          "doctorType": "Dermatologist"
+        }
       }
     };
   }

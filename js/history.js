@@ -1,8 +1,35 @@
-// history.js — LocalStorage-based scan history manager
+// history.js — LocalStorage-based scan history manager with window.name backup fallback
 class HistoryManager {
   constructor() {
     this.STORAGE_KEY = "heallens_history";
     this.FAMILY_KEY = "heallens_family";
+  }
+
+  // Smart backup helpers to persist data on file:// refreshes
+  _backupGet(key) {
+    try {
+      if (!window.name) return null;
+      const backup = JSON.parse(window.name);
+      return backup[key] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  _backupSet(key, value) {
+    try {
+      let backup = {};
+      if (window.name) {
+        try {
+          backup = JSON.parse(window.name);
+        } catch {}
+      }
+      if (typeof backup !== "object" || backup === null) {
+        backup = {};
+      }
+      backup[key] = value;
+      window.name = JSON.stringify(backup);
+    } catch {}
   }
 
   addScan(result, memberName, imageSrc) {
@@ -45,13 +72,30 @@ class HistoryManager {
       } catch (err) {}
     }
     
+    // Keep tab memory in sync
+    this._backupSet(this.STORAGE_KEY, history);
+    
     return entry;
   }
 
   getAll() {
     try {
-      return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || [];
-    } catch { return []; }
+      let data = localStorage.getItem(this.STORAGE_KEY);
+      if (!data) {
+        const backup = this._backupGet(this.STORAGE_KEY);
+        if (backup) {
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(backup));
+          return backup;
+        }
+        return [];
+      }
+      const parsed = JSON.parse(data) || [];
+      this._backupSet(this.STORAGE_KEY, parsed);
+      return parsed;
+    } catch {
+      const backup = this._backupGet(this.STORAGE_KEY);
+      return backup || [];
+    }
   }
 
   getByMember(memberName) {
@@ -65,17 +109,33 @@ class HistoryManager {
   deleteById(id) {
     const history = this.getAll().filter(h => h.id !== id);
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(history));
+    this._backupSet(this.STORAGE_KEY, history);
   }
 
   clearAll() {
     localStorage.removeItem(this.STORAGE_KEY);
+    this._backupSet(this.STORAGE_KEY, null);
   }
 
   // Family members
   getFamilyMembers() {
     try {
-      return JSON.parse(localStorage.getItem(this.FAMILY_KEY)) || [{ name: "Self", age: "", relation: "Self" }];
-    } catch { return [{ name: "Self", age: "", relation: "Self" }]; }
+      let data = localStorage.getItem(this.FAMILY_KEY);
+      if (!data) {
+        const backup = this._backupGet(this.FAMILY_KEY);
+        if (backup) {
+          localStorage.setItem(this.FAMILY_KEY, JSON.stringify(backup));
+          return backup;
+        }
+        return [{ name: "Self", age: "", relation: "Self" }];
+      }
+      const parsed = JSON.parse(data) || [{ name: "Self", age: "", relation: "Self" }];
+      this._backupSet(this.FAMILY_KEY, parsed);
+      return parsed;
+    } catch {
+      const backup = this._backupGet(this.FAMILY_KEY);
+      return backup || [{ name: "Self", age: "", relation: "Self" }];
+    }
   }
 
   addFamilyMember(member) {
@@ -83,12 +143,14 @@ class HistoryManager {
     member.id = Date.now().toString();
     members.push(member);
     localStorage.setItem(this.FAMILY_KEY, JSON.stringify(members));
+    this._backupSet(this.FAMILY_KEY, members);
     return member;
   }
 
   deleteFamilyMember(id) {
     const members = this.getFamilyMembers().filter(m => m.id !== id);
     localStorage.setItem(this.FAMILY_KEY, JSON.stringify(members));
+    this._backupSet(this.FAMILY_KEY, members);
   }
 
   // Format date for display

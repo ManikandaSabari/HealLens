@@ -1,14 +1,55 @@
-// sos.js — Emergency SOS Feature
+// sos.js — Emergency SOS Feature with window.name backup fallback
 class SOSManager {
   constructor() {
     this.STORAGE_KEY = "heallens_sos_contacts";
     this.isActivated = false;
   }
 
+  // Smart backup helpers to persist data on file:// refreshes
+  _backupGet(key) {
+    try {
+      if (!window.name) return null;
+      const backup = JSON.parse(window.name);
+      return backup[key] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  _backupSet(key, value) {
+    try {
+      let backup = {};
+      if (window.name) {
+        try {
+          backup = JSON.parse(window.name);
+        } catch {}
+      }
+      if (typeof backup !== "object" || backup === null) {
+        backup = {};
+      }
+      backup[key] = value;
+      window.name = JSON.stringify(backup);
+    } catch {}
+  }
+
   getContacts() {
     try {
-      return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || [];
-    } catch { return []; }
+      let data = localStorage.getItem(this.STORAGE_KEY);
+      if (!data) {
+        const backup = this._backupGet(this.STORAGE_KEY);
+        if (backup) {
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(backup));
+          return backup;
+        }
+        return [];
+      }
+      const parsed = JSON.parse(data) || [];
+      this._backupSet(this.STORAGE_KEY, parsed);
+      return parsed;
+    } catch {
+      const backup = this._backupGet(this.STORAGE_KEY);
+      return backup || [];
+    }
   }
 
   addContact(contact) {
@@ -20,12 +61,14 @@ class SOSManager {
     contact.id = Date.now().toString();
     contacts.push(contact);
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(contacts));
+    this._backupSet(this.STORAGE_KEY, contacts);
     return contact;
   }
 
   deleteContact(id) {
     const contacts = this.getContacts().filter(c => c.id !== id);
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(contacts));
+    this._backupSet(this.STORAGE_KEY, contacts);
   }
 
   // Trigger SOS alert

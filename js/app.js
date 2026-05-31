@@ -225,7 +225,7 @@ function exportHistoryPDF() {
     </body></html>
   `;
   const win = window.open("", "_blank");
-  win.document.write(printContent);
+  win.document.documentElement.innerHTML = printContent;
   win.document.close();
   win.print();
 }
