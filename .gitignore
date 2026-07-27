@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Environment Variables
+.env
+backend/.env
+
+# IDE Files
+.vscode/
+.idea/
+
+# Android Build Artifacts
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+
+# Logs
+*.log
+logs/
+
+# Operating System Files
+.DS_Store
+Thumbs.db

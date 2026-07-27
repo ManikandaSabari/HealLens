@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HealLens — AI-Powered Multilingual Healthcare App</title>
+  <meta name="description" content="HealLens is an AI-powered multilingual healthcare app that detects diseases from images, suggests Ayurvedic remedies, and supports voice input in Tamil, Hindi, Kannada, and English." />
+  <meta name="keywords" content="healthcare app, AI diagnosis, ayurveda, multilingual, Tamil, Hindi, Kannada, X-ray, CNN, disease detection" />
+  <meta name="theme-color" content="#00D4FF" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="HealLens — AI Healthcare for Every Indian" />
+  <meta property="og:description" content="Upload an image or speak your symptoms. HealLens AI detects diseases, suggests remedies, and speaks results in your language." />
+  <meta property="og:type" content="website" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style/main.css" />
+  <link rel="stylesheet" href="style/landing.css" />
+</head>
+<body class="landing-page">
+
+  <!-- ─── Navbar ─── -->
+  <nav class="landing-nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-logo">
+      <div class="nav-logo-icon" aria-hidden="true">🏥</div>
+      <div>
+        <div class="nav-logo-text">HealLens</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="lang-switcher" role="group" aria-label="Language selector">
+        <button class="lang-btn active" data-lang="en" aria-label="English">EN</button>
+        <button class="lang-btn" data-lang="hi" aria-label="Hindi">हिं</button>
+        <button class="lang-btn" data-lang="ta" aria-label="Tamil">தமி</button>
+        <button class="lang-btn" data-lang="kn" aria-label="Kannada">ಕನ್ನ</button>
+      </div>
+      <a href="login.html" class="btn-nav-start" id="nav-get-started" data-i18n="getStarted">Get Started →</a>
+    </div>
+  </nav>
+
+  <!-- ─── Hero Section ─── -->
+  <section class="hero-section" aria-labelledby="hero-heading">
+    <div class="hero-eyebrow">🤖 powered by AI + Ayurveda</div>
+
+    <h1 class="hero-title" id="hero-heading">
+      Your Health,<br />
+      <span class="gradient-text">Understood by AI</span>
+    </h1>
+
+    <p class="hero-subtitle" id="hero-sub">
+      Upload an image, speak your symptoms, or scan your X-ray — HealLens AI instantly detects diseases, explains them in simple words, and suggests Ayurvedic remedies in your language.
+    </p>
+
+    <div class="hero-actions">
+      <a href="login.html" class="btn-hero-primary" id="hero-start-btn">
+        🔬 Start Your Free Scan
+      </a>
+      <a href="#features" class="btn-hero-secondary" id="hero-learn-btn">
+        Learn How It Works ↓
+      </a>
+    </div>
+
+    <!-- Animated scan visual -->
+    <div class="hero-visual" aria-hidden="true">
+      <div class="hero-scan-ring"></div>
+      <div class="hero-scan-ring"></div>
+      <div class="hero-scan-ring"></div>
+      <div class="hero-scan-core">🫁</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-value">7</div>
+        <div class="hero-stat-label">Diseases Detected</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">4</div>
+        <div class="hero-stat-label">Indian Languages</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">90%+</div>
+        <div class="hero-stat-label">AI Confidence</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">Free</div>
+        <div class="hero-stat-label">Always</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Features Section ─── -->
+  <section class="features-section" id="features" aria-labelledby="features-heading">
+    <div class="section-header">
+      <div class="section-tag">FEATURES</div>
+      <h2 class="section-title" id="features-heading">Everything You Need,<br>In One App</h2>
+      <p class="section-subtitle">From diagnosis to doctor recommendation — HealLens covers your complete health journey.</p>
+    </div>
+
+    <div class="features-grid" role="list">
+      <div class="feature-card" role="listitem" id="feature-scanner">
+        <div class="feature-icon">🔬</div>
+        <div class="feature-title">AI Disease Scanner</div>
+        <p class="feature-desc">Upload a normal photo or X-ray. Our CNN model detects chest conditions (Pneumonia, TB, COVID), bone issues (Fractures, Arthritis), and skin problems (Infections, Rashes).</p>
+      </div>
+      <div class="feature-card" role="listitem" id="feature-xray">
+        <div class="feature-icon">🩻</div>
+        <div class="feature-title">Image → X-Ray Converter</div>
+        <p class="feature-desc">No X-ray machine? No problem. Upload a regular image and HealLens converts it into an X-ray style view using advanced canvas image processing.</p>
+      </div>
+      <div class="feature-card" role="listitem" id="feature-voice">
+        <div class="feature-icon">🎙️</div>
+        <div class="feature-title">Voice Input & Output</div>
+        <p class="feature-desc">Speak your symptoms — HealLens listens and responds in your language. Results are also read aloud in Tamil, Hindi, Kannada, or English.</p>
+      </div>
+      <div class="feature-card" role="listitem" id="feature-ayurveda">
+        <div class="feature-icon">🌿</div>
+        <div class="feature-title">Ayurvedic Medicine Map</div>
+        <p class="feature-desc">Get personalized Ayurvedic remedies with exact dosages, preparation methods, and a body-based medicine map for every condition detected.</p>
+      </div>
+      <div class="feature-card" role="listitem" id="feature-chatbot">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-title">AI Health Chatbot</div>
+        <p class="feature-desc">Ask follow-up questions about your diagnosis, symptoms, or remedies. The chatbot understands context from your last scan and answers in your preferred language.</p>
+      </div>
+      <div class="feature-card" role="listitem" id="feature-history">
+        <div class="feature-icon">📋</div>
+        <div class="feature-title">Family Health History</div>
+        <p class="feature-desc">One account for the whole family. Track past scans, filter by family member, view health trends, and export full reports as PDF.</p>
+      </div>
+      <div class="feature-card" role="listitem" id="feature-sos">
+        <div class="feature-icon">🚨</div>
+        <div class="feature-title">Emergency SOS</div>
+        <p class="feature-desc">If a scan detects a critical condition, HealLens automatically offers to alert your emergency contacts. One-touch SOS calls and shares your health info.</p>
+      </div>
+      <div class="feature-card" role="listitem" id="feature-severity">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Severity Assessment</div>
+        <p class="feature-desc">Every scan result is color-coded: Mild ✅, Moderate ⚡, or Critical ⚠️ — with clear guidance on whether to rest at home or visit a doctor immediately.</p>
+      </div>
+      <div class="feature-card" role="listitem" id="feature-doctor">
+        <div class="feature-icon">👨‍⚕️</div>
+        <div class="feature-title">Doctor Recommendations</div>
+        <p class="feature-desc">Based on your condition, HealLens recommends the right specialist (Pulmonologist, Dermatologist, etc.) and links directly to doctor booking portals.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Language Section ─── -->
+  <section class="lang-section" aria-labelledby="lang-heading">
+    <div class="section-header">
+      <div class="section-tag">MULTILINGUAL</div>
+      <h2 class="section-title" id="lang-heading">Designed for<br>Every Indian</h2>
+      <p class="section-subtitle">Full support for India's most spoken languages, with more on the way.</p>
+    </div>
+    <div class="lang-flags" role="list">
+      <div class="lang-flag-card" role="listitem" id="lang-card-en" onclick="setLandingLang('en')">
+        <div class="lang-flag">🇮🇳</div>
+        <div class="lang-script">HealLens</div>
+        <div class="lang-name">English</div>
+      </div>
+      <div class="lang-flag-card" role="listitem" id="lang-card-hi" onclick="setLandingLang('hi')">
+        <div class="lang-flag">🇮🇳</div>
+        <div class="lang-script">हीलLens</div>
+        <div class="lang-name">हिंदी</div>
+      </div>
+      <div class="lang-flag-card" role="listitem" id="lang-card-ta" onclick="setLandingLang('ta')">
+        <div class="lang-flag">🇮🇳</div>
+        <div class="lang-script">ஹீல்லென்ஸ்</div>
+        <div class="lang-name">தமிழ்</div>
+      </div>
+      <div class="lang-flag-card" role="listitem" id="lang-card-kn" onclick="setLandingLang('kn')">
+        <div class="lang-flag">🇮🇳</div>
+        <div class="lang-script">ಹೀಲ್ಲೆನ್ಸ್</div>
+        <div class="lang-name">ಕನ್ನಡ</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── How It Works ─── -->
+  <section style="position:relative;z-index:1;padding:48px 32px;max-width:1000px;margin:0 auto;" aria-labelledby="how-heading">
+    <div class="section-header">
+      <div class="section-tag">HOW IT WORKS</div>
+      <h2 class="section-title" id="how-heading">3 Simple Steps<br>to Diagnosis</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;" role="list">
+      <div style="text-align:center;padding:32px;background:var(--bg-glass);border:1px solid var(--border-color);border-radius:20px;" role="listitem" id="step-1">
+        <div style="font-size:3rem;margin-bottom:16px;">📸</div>
+        <div style="font-size:1.5rem;font-weight:800;color:var(--color-primary);margin-bottom:8px;">Step 1</div>
+        <div style="font-weight:700;margin-bottom:8px;">Upload or Capture</div>
+        <p style="color:var(--text-secondary);font-size:0.88rem;">Upload a photo, open your camera, or type/speak your symptoms.</p>
+      </div>
+      <div style="text-align:center;padding:32px;background:var(--bg-glass);border:1px solid var(--border-color);border-radius:20px;" role="listitem" id="step-2">
+        <div style="font-size:3rem;margin-bottom:16px;">🧠</div>
+        <div style="font-size:1.5rem;font-weight:800;color:var(--color-secondary-light);margin-bottom:8px;">Step 2</div>
+        <div style="font-weight:700;margin-bottom:8px;">AI Analyzes</div>
+        <p style="color:var(--text-secondary);font-size:0.88rem;">Our CNN model detects the body part and identifies the disease with confidence score.</p>
+      </div>
+      <div style="text-align:center;padding:32px;background:var(--bg-glass);border:1px solid var(--border-color);border-radius:20px;" role="listitem" id="step-3">
+        <div style="font-size:3rem;margin-bottom:16px;">💊</div>
+        <div style="font-size:1.5rem;font-weight:800;color:var(--color-accent);margin-bottom:8px;">Step 3</div>
+        <div style="font-weight:700;margin-bottom:8px;">Get Your Plan</div>
+        <p style="color:var(--text-secondary);font-size:0.88rem;">Receive natural remedies, Ayurvedic treatment, doctor recommendations — all in your language.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CTA Section ─── -->
+  <section class="cta-section" id="cta-section">
+    <div class="cta-card">
+      <div class="cta-title">Ready to Scan?</div>
+      <p class="cta-subtitle">Join thousands of Indians using HealLens for smarter, faster, and more accessible healthcare.</p>
+      <a href="login.html" class="btn-hero-primary" id="cta-start-btn" style="display:inline-flex;margin:0 auto;">
+        🔬 Open HealLens Dashboard →
+      </a>
+    </div>
+  </section>
+
+  <!-- ─── Footer ─── -->
+  <footer class="landing-footer" role="contentinfo">
+    <div style="margin-bottom:8px;">
+      <strong style="background:var(--grad-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">HealLens</strong>
+      — AI-Powered Multilingual Healthcare
+    </div>
+    <div>Built with ❤️ for India | Available in English, हिंदी, தமிழ், ಕನ್ನಡ</div>
+    <div style="margin-top:6px;font-size:0.72rem;">
+      ⚠️ For educational purposes. Always consult a licensed doctor for medical decisions.
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <!-- TensorFlow.js for real CNN disease prediction -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/ai-engine.js?v=2"></script>
+  <script>
+    // Landing page language switcher
+    function setLandingLang(lang) {
+      window.i18n?.setLanguage(lang);
+      document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-lang') === lang);
+      });
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => setLandingLang(btn.getAttribute('data-lang')));
+    });
+
+    // Set active lang on load
+    const savedLang = localStorage.getItem('heallens_lang') || 'en';
+    setLandingLang(savedLang);
+
+    // Animate feature cards on scroll
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.style.animation = 'slideUp 0.5s ease forwards';
+          e.target.style.opacity = '1';
+        }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.feature-card, .lang-flag-card').forEach((card, i) => {
+      card.style.opacity = '0';
+      card.style.animationDelay = `${i * 0.08}s`;
+      observer.observe(card);
+    });
+  </script>
+</body>
+</html>
