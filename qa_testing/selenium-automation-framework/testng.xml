@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="HealLens AI - End to End Selenium QA Automation Suite" parallel="classes" thread-count="2">
+    
+    <listeners>
+        <listener class-name="com.heallens.qa.utils.ExtentReportManager"/>
+    </listeners>
+
+    <test name="HealLens AI Regression Test Suite">
+        <classes>
+            <class name="com.heallens.qa.tests.AuthTest"/>
+            <class name="com.heallens.qa.tests.DashboardTest"/>
+            <class name="com.heallens.qa.tests.ImageAnalysisTest"/>
+            <class name="com.heallens.qa.tests.ReportAnalysisTest"/>
+            <class name="com.heallens.qa.tests.ClinicalHistoryTest"/>
+            <class name="com.heallens.qa.tests.EmergencySOSTest"/>
+            <class name="com.heallens.qa.tests.ProfileTest"/>
+            <class name="com.heallens.qa.tests.UITest"/>
+        </classes>
+    </test>
+</suite>

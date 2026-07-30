@@ -1,0 +1,49 @@
+name: HealLens AI Selenium Automation CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 2 * * *' # Daily build at 2:00 AM UTC
+
+jobs:
+  selenium-test:
+    name: Run Selenium TestNG E2E Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Install Headless Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Run Selenium TestNG Automation Suite
+        run: |
+          cd qa_testing/selenium-automation-framework
+          mvn clean test -Dheadless=true
+
+      - name: Archive ExtentReports HTML Output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: extent-reports
+          path: qa_testing/selenium-automation-framework/test-output/ExtentReport.html
+
+      - name: Archive Test Failure Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots
+          path: qa_testing/selenium-automation-framework/screenshots/*.png
