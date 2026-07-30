@@ -6,6 +6,7 @@ const clinicalRecordService = require("../services/clinicalRecordService");
 async function createRecord(req, res) {
   try {
     const {
+      user_id,
       patient_name,
       age,
       gender,
@@ -44,6 +45,7 @@ async function createRecord(req, res) {
     }
 
     const payload = {
+      user_id: user_id || null,
       patient_name,
       age: Number(age),
       gender,
@@ -71,6 +73,28 @@ async function createRecord(req, res) {
   }
 }
 
+/**
+ * Controller handler to process GET /api/clinical-records
+ */
+async function getClinicalRecords(req, res) {
+  try {
+    const userId = req.query.user_id || req.query.userId || null;
+    const records = await clinicalRecordService.getClinicalRecords(userId);
+
+    return res.status(200).json({
+      success: true,
+      count: records.length,
+      data: records
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Failed to fetch clinical records"
+    });
+  }
+}
+
 module.exports = {
-  createRecord
+  createRecord,
+  getClinicalRecords
 };

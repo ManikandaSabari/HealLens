@@ -17,6 +17,490 @@
 
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* Header Balance & Alignment Polish */
+    .dashboard-topbar {
+      height: 64px;
+      padding: 0 var(--space-xl);
+      box-sizing: border-box;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 100%;
+    }
+    .user-profile-card {
+      display: flex; align-items: center; gap: 12px;
+      height: 34px; box-sizing: border-box;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px; padding: 0 14px 0 4px;
+      margin-right: 4px;
+    }
+    .user-avatar-wrap {
+      width: 28px; height: 28px; border-radius: 50%;
+      overflow: hidden; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0, 212, 255, 0.15);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+    }
+    .user-avatar-img {
+      width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+    }
+    .user-avatar-default {
+      font-size: 0.85rem; line-height: 1; color: #00D4FF;
+    }
+    .user-profile-info {
+      display: flex; flex-direction: column; text-align: left; justify-content: center;
+    }
+    .user-greeting-row {
+      display: flex; align-items: center; gap: 6px; line-height: 1.2;
+    }
+    .user-greeting-text {
+      font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.82rem;
+      color: #ffffff; white-space: nowrap; letter-spacing: -0.1px;
+    }
+    .user-provider-badge {
+      font-size: 0.60rem; font-weight: 700; padding: 2px 6px; border-radius: 10px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      display: inline-flex; align-items: center; justify-content: center;
+      line-height: 1; vertical-align: middle; flex-shrink: 0;
+    }
+    .user-provider-badge.provider-google {
+      background: rgba(66, 133, 244, 0.2); color: #4285F4; border: 1px solid rgba(66, 133, 244, 0.4);
+    }
+    .user-provider-badge.provider-email {
+      background: rgba(124, 58, 237, 0.2); color: #a78bfa; border: 1px solid rgba(124, 58, 237, 0.4);
+    }
+    .user-email-text {
+      font-size: 0.65rem; color: rgba(255, 255, 255, 0.5); font-weight: 400;
+      white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+
+    /* AI Engine Online Badge Polish */
+    .topbar-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 0 12px; height: 34px; border-radius: 20px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #10b981; font-size: 0.76rem; font-weight: 600;
+      letter-spacing: 0.2px; box-shadow: none; box-sizing: border-box;
+    }
+    .topbar-badge::before {
+      content: '';
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+      animation: subtle-pulse-dot 2s infinite ease-in-out;
+      flex-shrink: 0;
+    }
+
+    @keyframes subtle-pulse-dot {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    /* Logout Button Polish */
+    .logout-btn {
+      height: 34px;
+      padding: 0 16px;
+      border-radius: 20px;
+      background: rgba(239, 68, 68, 0.08) !important;
+      backdrop-filter: blur(8px) !important;
+      border: 1px solid rgba(239, 68, 68, 0.2) !important;
+      color: #f87171 !important;
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px;
+      line-height: 1 !important;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      box-sizing: border-box;
+    }
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.16) !important;
+      border-color: rgba(239, 68, 68, 0.35) !important;
+      color: #fca5a5 !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.18);
+    }
+    .logout-btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    /* ─── AI Scanner Section UI Polish ─── */
+    #tab-scanner .tab-header {
+      margin-bottom: 32px;
+    }
+    .scanner-top-bar {
+      margin-bottom: 32px;
+      gap: 16px;
+    }
+    .upload-area {
+      border: 2px dashed rgba(0, 212, 255, 0.4);
+      border-radius: 24px;
+      padding: 48px 32px;
+      background: rgba(12, 22, 45, 0.45);
+      backdrop-filter: blur(16px);
+      min-height: 240px;
+      margin-bottom: 36px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: #00d4ff;
+      background: rgba(0, 212, 255, 0.08);
+      box-shadow: 0 0 25px rgba(0, 212, 255, 0.18), inset 0 0 15px rgba(0, 212, 255, 0.05);
+      transform: translateY(-2px);
+    }
+    .upload-icon {
+      font-size: 3.8rem;
+      line-height: 1;
+      transition: transform 0.3s ease;
+    }
+    .upload-area:hover .upload-icon {
+      transform: scale(1.08);
+    }
+    .upload-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-top: 4px;
+    }
+    .upload-hint {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.84rem;
+    }
+    .upload-or {
+      margin: 6px 0;
+    }
+    .upload-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    #browse-btn, #camera-btn {
+      width: 190px;
+      height: 44px;
+      border-radius: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.88rem;
+      font-weight: 600;
+      background: rgba(0, 212, 255, 0.08);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      color: #00d4ff;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-sizing: border-box;
+    }
+    #browse-btn:hover, #camera-btn:hover {
+      background: rgba(0, 212, 255, 0.18);
+      border-color: #00d4ff;
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 212, 255, 0.25);
+    }
+    #browse-btn:active, #camera-btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    /* ─── Sidebar & Navigation Consistency Polish ─── */
+    .sidebar-nav {
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      border-radius: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.92rem;
+      font-weight: 500;
+      background: transparent;
+      border: 1px solid transparent;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: left;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .nav-btn:hover {
+      background: rgba(0, 212, 255, 0.08);
+      color: #00d4ff;
+      border-color: rgba(0, 212, 255, 0.15);
+      transform: translateX(2px);
+    }
+    .nav-btn.active {
+      background: linear-gradient(90deg, rgba(0, 212, 255, 0.16) 0%, rgba(0, 212, 255, 0.04) 100%);
+      color: #00d4ff;
+      font-weight: 600;
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      box-shadow: inset 3px 0 0 0 #00d4ff, 0 2px 10px rgba(0, 212, 255, 0.1);
+    }
+    .nav-btn .nav-icon {
+      font-size: 1.15rem;
+      width: 26px;
+      height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav-btn .nav-label {
+      flex: 1;
+      font-size: 0.92rem;
+      line-height: 1.2;
+    }
+    .sidebar-sub-menu {
+      gap: 4px;
+      padding-left: 32px;
+      margin-top: 4px;
+      margin-bottom: 6px;
+    }
+    .sidebar-sub-btn {
+      padding: 9px 12px;
+      border-radius: 10px;
+      font-size: 0.84rem;
+      transition: all 0.2s ease;
+    }
+    .sidebar-sub-btn:hover {
+      background: rgba(0, 212, 255, 0.08);
+      color: #00d4ff;
+    }
+    .sidebar-sub-btn.active {
+      background: rgba(0, 212, 255, 0.15);
+      border-color: rgba(0, 212, 255, 0.35);
+      color: #00d4ff;
+      font-weight: 600;
+    }
+
+    /* Language Buttons Polish */
+    .sidebar-lang {
+      padding: 10px 14px;
+    }
+    .lang-switcher {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(8px);
+      padding: 3px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-sizing: border-box;
+    }
+    .lang-btn {
+      flex: 1 1 0px;
+      min-width: 0;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.5);
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 0;
+    }
+    .lang-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .lang-btn.active {
+      background: rgba(0, 212, 255, 0.18);
+      color: #ffffff;
+      font-weight: 700;
+      border: 1px solid rgba(0, 212, 255, 0.4);
+      box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+    }
+
+    /* Typography Polish */
+    .tab-header {
+      margin-bottom: 32px;
+    }
+    .tab-title {
+      font-size: 1.95rem;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      margin-bottom: 6px;
+    }
+    .tab-subtitle {
+      font-size: 0.92rem;
+      color: rgba(255, 255, 255, 0.65);
+      line-height: 1.5;
+    }
+  </style>
+
+  <!-- Supabase Client Library & Route Protection (Phase 6.6 & 6.7.1) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    function renderUserProfileUI() {
+      if (!window.currentUser) return;
+
+      const user = window.currentUser;
+      const rawName = user.fullName ? user.fullName.trim() : "";
+      const firstName = rawName ? rawName.split(" ")[0] : "User";
+
+      const greetingEl = document.getElementById("user-greeting-text");
+      if (greetingEl) {
+        greetingEl.textContent = `Welcome, ${firstName}!`;
+      }
+
+      const avatarWrap = document.getElementById("user-avatar-wrap");
+      if (avatarWrap) {
+        if (user.avatar) {
+          avatarWrap.innerHTML = `<img src="${user.avatar}" alt="${firstName}" class="user-avatar-img" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'user-avatar-default\\'>👤</div>';" />`;
+        } else {
+          avatarWrap.innerHTML = `<div class="user-avatar-default">👤</div>`;
+        }
+      }
+
+      const emailEl = document.getElementById("user-email-text");
+      if (emailEl) {
+        emailEl.textContent = user.email || "";
+      }
+
+      const providerBadge = document.getElementById("user-provider-badge");
+      if (providerBadge) {
+        const rawProvider = (user.provider || "email").toLowerCase();
+        const isGoogle = rawProvider.includes("google");
+        providerBadge.textContent = isGoogle ? "Google" : "Email";
+        providerBadge.className = `user-provider-badge ${isGoogle ? 'provider-google' : 'provider-email'}`;
+      }
+    }
+
+    async function loadUserProfile() {
+      try {
+        const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+        if (!client) return;
+
+        const { data: { user }, error } = await client.auth.getUser();
+
+        if (user) {
+          const userMeta = user.user_metadata || {};
+          const appMeta = user.app_metadata || {};
+
+          window.currentUser = {
+            id: user.id,
+            email: user.email,
+            fullName: userMeta.full_name || userMeta.name || "User",
+            avatar: userMeta.avatar_url || userMeta.picture || null,
+            provider: appMeta.provider || "email",
+            metadata: userMeta
+          };
+          console.log('Universal Authenticated User Profile Loaded:', window.currentUser);
+          renderUserProfileUI();
+          if (window.historyManager && typeof window.historyManager.fetchRemoteHistory === 'function') {
+            window.historyManager.fetchRemoteHistory();
+          }
+          if (window.sosManager && typeof window.sosManager.fetchRemoteContacts === 'function') {
+            window.sosManager.fetchRemoteContacts();
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+      }
+    }
+
+    async function protectDashboardRoute() {
+      try {
+        const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+        if (!client) {
+          console.warn("Supabase client is not initialized.");
+          return;
+        }
+
+        // Part 2: Check Supabase session on dashboard load
+        const { data: { session }, error } = await client.auth.getSession();
+        if (error || !session) {
+          window.location.href = 'login.html';
+          return;
+        }
+
+        // Retrieve authenticated user profile (Phase 6.7.1)
+        await loadUserProfile();
+
+        // Part 3: Authentication State Listener
+        client.auth.onAuthStateChange((event, session) => {
+          if (event === 'SIGNED_OUT' || !session) {
+            window.location.href = 'login.html';
+          }
+        });
+      } catch (err) {
+        console.error("Error protecting dashboard route:", err);
+        window.location.href = 'login.html';
+      }
+    }
+
+    window.userProfilePromise = protectDashboardRoute();
+
+    // Phase 6.6.1 (Fixed): Complete Logout Session Cleanup
+    async function handleLogout() {
+      try {
+        const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+        if (!client) {
+          window.location.href = 'index.html';
+          return;
+        }
+
+        const { error } = await client.auth.signOut();
+        if (error) {
+          if (typeof showToast === 'function') {
+            showToast(error.message, 'error');
+          } else {
+            alert('Logout failed: ' + error.message);
+          }
+          return;
+        }
+
+        // Verify session is fully destroyed before redirecting
+        const { data: { session: remainingSession } } = await client.auth.getSession();
+        if (remainingSession === null) {
+          window.location.href = 'index.html';
+        } else {
+          console.warn('Session still active after signOut():', remainingSession);
+          if (typeof showToast === 'function') {
+            showToast('Logout may not have completed. Please try again.', 'error');
+          }
+        }
+      } catch (err) {
+        console.error('Logout exception:', err);
+        window.location.href = 'index.html';
+      }
+    }
+  </script>
 </head>
 
 <body>
@@ -93,8 +577,25 @@
           <div class="topbar-title" id="topbar-title" data-i18n="navScanner">Scanner</div>
         </div>
         <div class="topbar-right">
+          <!-- Personalized User Profile Card -->
+          <div id="user-profile-card" class="user-profile-card">
+            <div id="user-avatar-wrap" class="user-avatar-wrap">
+              <div class="user-avatar-default">👤</div>
+            </div>
+            <div class="user-profile-info">
+              <div class="user-greeting-row">
+                <span id="user-greeting-text" class="user-greeting-text">Welcome, User!</span>
+                <span id="user-provider-badge" class="user-provider-badge provider-email">Email</span>
+              </div>
+              <div id="user-email-text" class="user-email-text"></div>
+            </div>
+          </div>
+
           <button id="voice-toggle-btn" class="top-action-btn" title="Toggle Voice Feedback">🔊</button>
           <div class="topbar-badge">AI Engine Online</div>
+          <button id="logout-btn" class="top-action-btn logout-btn" title="Sign Out" onclick="handleLogout()">
+            <span>🚪</span> <span>Logout</span>
+          </button>
         </div>
       </div>
 
@@ -180,7 +681,7 @@
 
           <!-- Symptom Inputs -->
           <section id="symptoms-section"
-            style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            style="margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--border-color);">
             <div class="tab-header">
               <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-heading); margin-bottom: 10px;">Symptoms
                 Analysis</h3>

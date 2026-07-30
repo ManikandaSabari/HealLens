@@ -88,25 +88,53 @@
     /* Custom Toast Alert style */
     .toast-container {
       position: fixed; top: 24px; right: 24px; z-index: 10000;
-      display: flex; flex-direction: column; gap: 10px;
+      display: flex; flex-direction: column; gap: 12px;
+      max-width: 360px; pointer-events: none;
     }
     .toast {
+      pointer-events: auto;
       background: rgba(8, 13, 26, 0.95);
-      backdrop-filter: blur(12px);
-      border-left: 4px solid #7C3AED;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-left-width: 4px;
-      border-radius: 12px; padding: 16px 20px;
-      color: white; font-size: 0.9rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      min-width: 280px; display: flex; align-items: center; gap: 12px;
-      animation: toastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-left: 4px solid #00d4ff;
+      border-radius: 14px; padding: 14px 18px;
+      color: #ffffff;
+      opacity: 1 !important;
+      transform: translateX(0) !important;
+      visibility: visible !important;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+      display: flex; align-items: flex-start; gap: 12px;
+      animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transition: all 0.3s ease;
     }
     .toast.error { border-left-color: #ff4a4a; }
+    .toast.warning { border-left-color: #ff9f43; }
     .toast.success { border-left-color: #00d4ff; }
-    @keyframes toastIn {
-      from { transform: translateX(50px); opacity: 0; }
+    .toast.info { border-left-color: #00d4ff; }
+
+    .toast-icon {
+      font-size: 1.25rem; line-height: 1; margin-top: 2px; flex-shrink: 0;
+    }
+    .toast-content {
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .toast-title {
+      font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.92rem;
+      color: #ffffff; line-height: 1.3;
+    }
+    .toast-message {
+      font-family: 'Inter', sans-serif; font-size: 0.83rem;
+      color: rgba(255, 255, 255, 0.75); line-height: 1.4; white-space: pre-line;
+    }
+
+    @keyframes toastSlideIn {
+      from { transform: translateX(20px); opacity: 0.85; }
       to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes toastSlideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(60px); opacity: 0; }
     }
   </style>
 </head>
@@ -114,72 +142,177 @@
   
   <div class="login-container">
     <div class="login-box">
-      <div class="login-header">
-        <div class="login-logo">
-          <div class="logo-icon">🏥</div>
-          <h1 class="logo-text">HealLens</h1>
+
+      <!-- SIGN IN VIEW CARD -->
+      <div id="signin-view">
+        <div class="login-header">
+          <div class="login-logo">
+            <div class="logo-icon">🏥</div>
+            <h1 class="logo-text">HealLens</h1>
+          </div>
+          <p class="login-subtitle">Sign in to access your AI health records</p>
         </div>
-        <p class="login-subtitle">Sign in to access your AI health records</p>
+
+        <div class="login-tabs">
+          <button class="tab-btn active" onclick="switchLoginTab('email')">Email</button>
+          <button class="tab-btn" onclick="switchLoginTab('phone')">Phone</button>
+        </div>
+
+        <!-- Default Credentials Display Pill -->
+        <div id="default-credentials-pill" class="default-pill">
+          <span style="font-weight: 700; color: white; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            🔑 Authorized Portal Access Keys:
+          </span>
+          <span id="pill-credentials-display">
+            Email: <code>admin@heallens.com</code><br>
+            Password: <code>admin123</code>
+          </span>
+        </div>
+
+        <!-- Email Login Form -->
+        <form id="email-form" class="login-form" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <div class="input-wrap">
+              <span class="input-icon">✉️</span>
+              <input type="email" id="email" placeholder="admin@heallens.com" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="label-row">
+              <label for="password">Password</label>
+              <span class="forgot-link" onclick="handleForgotPasswordClick(event)" style="cursor: pointer; color: #00D4FF; font-size: 0.82rem; font-weight: 600;">Forgot Password?</span>
+            </div>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="password" placeholder="••••••••" required>
+              <button type="button" class="password-toggle" onclick="togglePassword('password')">👁️</button>
+            </div>
+          </div>
+          <div class="form-options">
+            <label class="checkbox-label">
+              <input type="checkbox" checked>
+              <span>Remember me</span>
+            </label>
+          </div>
+
+          <div id="login-error-banner" style="display: none; color: #ff5555; background: rgba(255, 74, 74, 0.12); border: 1px solid rgba(255, 74, 74, 0.3); border-radius: 10px; padding: 10px 14px; margin: 12px 0; font-size: 0.84rem; font-weight: 600; text-align: center;"></div>
+
+          <button type="submit" class="btn-login">Sign In →</button>
+
+          <div class="login-divider"><span>OR</span></div>
+
+          <button type="button" class="google-btn" onclick="handleGoogleAuthClick(event)">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <div class="auth-toggle-text" style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.6); font-size: 0.88rem;">
+            Don't have an account? 
+            <span onclick="toggleAuthView('signup')" style="color: #00D4FF; font-weight: 700; cursor: pointer; text-decoration: underline;">Create Account</span>
+          </div>
+
+          <a class="change-pass-trigger" onclick="toggleCredentialsModal(true)" style="margin-top: 20px;">⚙️ Change Default Credentials / Passcode</a>
+        </form>
+
+        <!-- Phone Login Form (Hidden by default) -->
+        <form id="phone-form" class="login-form hidden" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <div class="input-wrap">
+              <span class="input-icon">📱</span>
+              <input type="tel" id="phone" placeholder="+91 00000 00000">
+            </div>
+          </div>
+          <p class="phone-note">We'll send a 6-digit OTP to your phone.</p>
+          <button type="submit" class="btn-login">Send OTP →</button>
+
+          <div class="login-divider"><span>OR</span></div>
+
+          <button type="button" class="google-btn" onclick="handleGoogleAuthClick(event)">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <div class="auth-toggle-text" style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.6); font-size: 0.88rem;">
+            Don't have an account? 
+            <span onclick="toggleAuthView('signup')" style="color: #00D4FF; font-weight: 700; cursor: pointer; text-decoration: underline;">Create Account</span>
+          </div>
+        </form>
       </div>
 
-      <div class="login-tabs">
-        <button class="tab-btn active" onclick="switchLoginTab('email')">Email</button>
-        <button class="tab-btn" onclick="switchLoginTab('phone')">Phone</button>
+      <!-- CREATE ACCOUNT VIEW CARD (Hidden by default) -->
+      <div id="signup-view" class="hidden">
+        <div class="login-header">
+          <div class="login-logo">
+            <div class="logo-icon">🏥</div>
+            <h1 class="logo-text">HealLens</h1>
+          </div>
+          <p class="login-subtitle">Create an account to manage your health records</p>
+        </div>
+
+        <form id="signup-form" class="login-form" onsubmit="handleSignupUI(event)">
+          <div class="form-group">
+            <label for="signup-fullname">Full Name</label>
+            <div class="input-wrap">
+              <span class="input-icon">👤</span>
+              <input type="text" id="signup-fullname" placeholder="Jane Doe" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="signup-email">Email Address</label>
+            <div class="input-wrap">
+              <span class="input-icon">✉️</span>
+              <input type="email" id="signup-email" placeholder="jane@example.com" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="signup-password">Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="signup-password" placeholder="••••••••" required>
+              <button type="button" class="password-toggle" onclick="togglePassword('signup-password')">👁️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="signup-confirm-password">Confirm Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="signup-confirm-password" placeholder="••••••••" required>
+              <button type="button" class="password-toggle" onclick="togglePassword('signup-confirm-password')">👁️</button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-login">Create Account →</button>
+
+          <div class="login-divider"><span>OR</span></div>
+
+          <button type="button" class="google-btn" onclick="handleGoogleAuthClick(event)">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <div class="auth-toggle-text" style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.6); font-size: 0.88rem;">
+            Already have an account? 
+            <span onclick="toggleAuthView('signin')" style="color: #00D4FF; font-weight: 700; cursor: pointer; text-decoration: underline;">Sign In</span>
+          </div>
+        </form>
       </div>
-
-      <!-- Default Credentials Display Pill -->
-      <div id="default-credentials-pill" class="default-pill">
-        <span style="font-weight: 700; color: white; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-          🔑 Authorized Portal Access Keys:
-        </span>
-        <span id="pill-credentials-display">
-          Email: <code>admin@heallens.com</code><br>
-          Password: <code>admin123</code>
-        </span>
-      </div>
-
-      <!-- Email Login Form -->
-      <form id="email-form" class="login-form" onsubmit="handleLogin(event)">
-        <div class="form-group">
-          <label for="email">Email Address</label>
-          <div class="input-wrap">
-            <span class="input-icon">✉️</span>
-            <input type="email" id="email" placeholder="admin@heallens.com" required>
-          </div>
-        </div>
-        <div class="form-group">
-          <div class="label-row">
-            <label for="password">Password</label>
-            <a href="#" class="forgot-link">Forgot?</a>
-          </div>
-          <div class="input-wrap">
-            <span class="input-icon">🔒</span>
-            <input type="password" id="password" placeholder="••••••••" required>
-            <button type="button" class="password-toggle" onclick="togglePassword()">👁️</button>
-          </div>
-        </div>
-        <div class="form-options">
-          <label class="checkbox-label">
-            <input type="checkbox" checked>
-            <span>Remember me</span>
-          </label>
-        </div>
-        <button type="submit" class="btn-login">Sign In →</button>
-        <a class="change-pass-trigger" onclick="toggleCredentialsModal(true)">⚙️ Change Default Credentials / Passcode</a>
-      </form>
-
-      <!-- Phone Login Form (Hidden by default) -->
-      <form id="phone-form" class="login-form hidden" onsubmit="handleLogin(event)">
-        <div class="form-group">
-          <label for="phone">Phone Number</label>
-          <div class="input-wrap">
-            <span class="input-icon">📱</span>
-            <input type="tel" id="phone" placeholder="+91 00000 00000">
-          </div>
-        </div>
-        <p class="phone-note">We'll send a 6-digit OTP to your phone.</p>
-        <button type="submit" class="btn-login">Send OTP →</button>
-      </form>
 
     </div>
     
@@ -212,10 +345,278 @@
     </div>
   </div>
 
+  <!-- Reset Password Modal -->
+  <div id="reset-password-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔑 Reset Password</h3>
+      </div>
+      <div class="modal-body">
+        <p class="modal-text">Enter your new password below to update your account access credentials.</p>
+        <form id="reset-password-form" onsubmit="handleResetPasswordSubmit(event)">
+          <div class="form-group" style="text-align: left;">
+            <label for="reset-new-password" style="display: block; margin-bottom: 6px;">New Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="reset-new-password" placeholder="••••••••" required style="padding-left: 42px;">
+              <button type="button" class="password-toggle" onclick="togglePassword('reset-new-password')">👁️</button>
+            </div>
+          </div>
+          <div class="form-group" style="text-align: left;">
+            <label for="reset-confirm-password" style="display: block; margin-bottom: 6px;">Confirm Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="reset-confirm-password" placeholder="••••••••" required style="padding-left: 42px;">
+              <button type="button" class="password-toggle" onclick="togglePassword('reset-confirm-password')">👁️</button>
+            </div>
+          </div>
+          <button type="submit" class="btn-save-creds">Update Password →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
+  <!-- Supabase Client Library & Configuration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+
   <script>
+    function toggleAuthView(view) {
+      const signinView = document.getElementById('signin-view');
+      const signupView = document.getElementById('signup-view');
+      if (view === 'signup') {
+        signinView.classList.add('hidden');
+        signupView.classList.remove('hidden');
+      } else {
+        signupView.classList.add('hidden');
+        signinView.classList.remove('hidden');
+      }
+    }
+
+    async function handleForgotPasswordClick(e) {
+      if (e) e.preventDefault();
+
+      if (window.isResettingPassword) {
+        console.warn("Password reset request already in progress.");
+        return;
+      }
+
+      const emailInputEl = document.getElementById('email');
+      const currentEmail = emailInputEl ? emailInputEl.value.trim() : '';
+
+      let email = '';
+
+      try {
+        const promptRes = window.prompt("Enter your registered email address to receive a password reset link:", currentEmail);
+        if (promptRes !== null && promptRes.trim() !== '') {
+          email = promptRes.trim();
+        } else if (promptRes === null && !currentEmail) {
+          return;
+        } else {
+          email = currentEmail;
+        }
+      } catch (pErr) {
+        email = currentEmail;
+      }
+
+      // 1. Validation: Required
+      if (!email) {
+        showToast('Please enter your email address to reset password.', 'error');
+        return;
+      }
+
+      // 2. Validation: Valid email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showToast('Please enter a valid email address.', 'error');
+        return;
+      }
+
+      window.isResettingPassword = true;
+      showToast('Sending password reset email...', 'info');
+
+      try {
+        let client = window.supabaseClient;
+        if (!client && window.supabase && typeof window.supabase.createClient === 'function') {
+          const url = window.SUPABASE_URL || "https://sqitixlmrrksqdqqboyp.supabase.co";
+          const key = window.SUPABASE_ANON_KEY || "sb_publishable_9KGmq4RT3sRuoPGfy5gsHg_l4lShf3O";
+          client = window.supabase.createClient(url, key);
+        }
+
+        if (!client) {
+          showToast('Supabase client is not initialized.', 'error');
+          return;
+        }
+
+        const redirectUrl = window.location.origin + window.location.pathname + '?type=recovery';
+
+        const { data, error } = await client.auth.resetPasswordForEmail(email, {
+          redirectTo: redirectUrl
+        });
+
+        if (error) {
+          console.error("Supabase resetPasswordForEmail error:", error);
+          if (error.status === 429 || (error.message && error.message.toLowerCase().includes('rate limit'))) {
+            showNotification('⚠️ Request Failed', 'Email rate limit exceeded. Supabase permits 1 reset email per 60 seconds. Please wait a minute and try again.', 'error');
+          } else {
+            showNotification('⚠️ Request Failed', error.message, 'error');
+          }
+        } else {
+          showNotification(
+            '✓ Password Reset Email Sent',
+            'Please check your inbox.\nA password reset link has been sent.',
+            'success'
+          );
+        }
+      } catch (err) {
+        console.error("handleForgotPasswordClick exception:", err);
+        showNotification('⚠️ Request Failed', err.message || 'Failed to send password reset email. Please try again later.', 'error');
+      } finally {
+        window.isResettingPassword = false;
+      }
+    }
+
+    async function handleGoogleAuthClick(e) {
+      if (e) e.preventDefault();
+
+      const btn = e ? (e.currentTarget || (e.target && e.target.closest ? e.target.closest('.google-btn') : null)) : null;
+      const targetBtn = btn || document.querySelector('.google-btn');
+      if (targetBtn && targetBtn.disabled) return;
+
+      const originalBtnText = targetBtn ? targetBtn.innerHTML : '<span>Continue with Google</span>';
+
+      if (targetBtn) {
+        targetBtn.disabled = true;
+        targetBtn.innerHTML = '<span class="loader"></span> <span>Connecting to Google...</span>';
+      }
+
+      try {
+        const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+
+        if (!client) {
+          showNotification('⚠️ Error', 'Supabase client is not initialized.', 'error');
+          if (targetBtn) {
+            targetBtn.disabled = false;
+            targetBtn.innerHTML = originalBtnText;
+          }
+          return;
+        }
+
+        const redirectBase = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+
+        const { data, error } = await client.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectBase + 'dashboard.html'
+          }
+        });
+
+        if (error) {
+          showNotification('⚠️ Google Sign-In Failed', 'Please try again.', 'error');
+          if (targetBtn) {
+            targetBtn.disabled = false;
+            targetBtn.innerHTML = originalBtnText;
+          }
+        }
+      } catch (err) {
+        showNotification('⚠️ Google Sign-In Failed', 'Please try again.', 'error');
+        if (targetBtn) {
+          targetBtn.disabled = false;
+          targetBtn.innerHTML = originalBtnText;
+        }
+      }
+    }
+
+    async function handleSignupUI(e) {
+      e.preventDefault();
+
+      const fullName = document.getElementById('signup-fullname').value.trim();
+      const email = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value;
+      const confirmPassword = document.getElementById('signup-confirm-password').value;
+
+      // 1. Validate required fields
+      if (!fullName || !email || !password || !confirmPassword) {
+        showNotification('⚠️ Validation Error', 'All fields are required.', 'warning');
+        return;
+      }
+
+      // 2. Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showNotification('⚠️ Validation Error', 'Please enter a valid email address.', 'warning');
+        return;
+      }
+
+      // 3. Validate password length (min 6 characters)
+      if (password.length < 6) {
+        showNotification('⚠️ Validation Error', 'Password must be at least 6 characters long.', 'warning');
+        return;
+      }
+
+      // 4. Validate password mismatch
+      if (password !== confirmPassword) {
+        showNotification('⚠️ Validation Error', 'Passwords do not match.', 'warning');
+        return;
+      }
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalBtnText = btn ? btn.innerHTML : 'Create Account →';
+
+      if (btn) {
+        btn.innerHTML = '<span class="loader"></span> Creating Account...';
+        btn.disabled = true;
+      }
+
+      try {
+        const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+        
+        if (!client) {
+          showNotification('⚠️ Error', 'Supabase client is not initialized.', 'error');
+          if (btn) {
+            btn.innerHTML = originalBtnText;
+            btn.disabled = false;
+          }
+          return;
+        }
+
+        const redirectBase = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+
+        const { data, error } = await client.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            emailRedirectTo: redirectBase + 'login.html',
+            data: {
+              full_name: fullName
+            }
+          }
+        });
+
+        if (error) {
+          showNotification('⚠️ Signup Error', error.message, 'error');
+        } else {
+          showNotification(
+            '✓ Verification Email Sent',
+            'Please check your inbox to verify your account.',
+            'success'
+          );
+          e.target.reset();
+        }
+      } catch (err) {
+        console.error("Signup error:", err);
+        showNotification('⚠️ Signup Error', err.message || 'An error occurred during account creation.', 'error');
+      } finally {
+        if (btn) {
+          btn.innerHTML = originalBtnText;
+          btn.disabled = false;
+        }
+      }
+    }
+
     function switchLoginTab(tab) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelector(`.tab-btn[onclick*="${tab}"]`).classList.add('active');
@@ -229,15 +630,17 @@
       }
     }
 
-    function togglePassword() {
-      const input = document.getElementById('password');
-      const btn = document.querySelector('.password-toggle');
+    function togglePassword(inputId = 'password') {
+      const targetId = typeof inputId === 'string' ? inputId : 'password';
+      const input = document.getElementById(targetId);
+      if (!input) return;
+      const btn = input.parentElement.querySelector('.password-toggle');
       if (input.type === 'password') {
         input.type = 'text';
-        btn.innerText = '🙈';
+        if (btn) btn.innerText = '🙈';
       } else {
         input.type = 'password';
-        btn.innerText = '👁️';
+        if (btn) btn.innerText = '👁️';
       }
     }
 
@@ -261,22 +664,59 @@
       }
     }
 
-    // Toast Generator
-    function showToast(message, type = 'success') {
-      const container = document.getElementById('toast-container');
+    // Single Reusable Notification Component
+    function showNotification(title, message = '', type = 'success') {
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+      }
+
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
-      
-      const icon = type === 'success' ? '⚡' : '⚠️';
-      toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
-      
+
+      let icon = '✓';
+      if (type === 'error') icon = '⚠️';
+      else if (type === 'warning') icon = '⚠️';
+      else if (type === 'info') icon = 'ℹ️';
+
+      let contentHtml = '<div class="toast-content">';
+      if (title) {
+        contentHtml += `<div class="toast-title">${title}</div>`;
+      }
+      if (message) {
+        contentHtml += `<div class="toast-message">${message}</div>`;
+      }
+      contentHtml += '</div>';
+
+      toast.innerHTML = `<div class="toast-icon">${icon}</div>${contentHtml}`;
       container.appendChild(toast);
-      
-      // Auto remove toast
+
+
+
+      // Auto dismiss after 4 seconds (4000ms)
       setTimeout(() => {
-        toast.style.animation = 'toastIn 0.3s reverse forwards';
-        setTimeout(() => toast.remove(), 300);
+        toast.style.animation = 'toastSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
       }, 4000);
+    }
+
+    // Alias showToast to use showNotification for backwards compatibility
+    function showToast(titleOrMsg, msgOrType = 'success', type = 'success') {
+      if (type !== 'success' || msgOrType === 'error' || msgOrType === 'warning' || msgOrType === 'success' || msgOrType === 'info') {
+        const typeArg = msgOrType || 'success';
+        const isError = typeArg === 'error' || typeArg === 'warning';
+        const titleArg = isError ? '⚠️ Error' : '✓ Notification';
+        showNotification(titleArg, titleOrMsg, typeArg);
+      } else {
+        showNotification(titleOrMsg, msgOrType, type);
+      }
     }
 
     // Save Custom Credentials
@@ -286,7 +726,7 @@
       const newPassword = document.getElementById('new-password').value;
 
       if (!newEmail || !newPassword) {
-        showToast('Please fill out all fields.', 'error');
+        showNotification('⚠️ Error', 'Please fill out all fields.', 'error');
         return;
       }
 
@@ -298,7 +738,7 @@
       document.getElementById('password').value = '';
 
       updateDefaultPill();
-      showToast('Portal passcode successfully updated! Enter this in future sessions.', 'success');
+      showNotification('✓ Passcode Updated', 'Portal passcode successfully updated! Enter this in future sessions.', 'success');
       toggleCredentialsModal(false);
     }
 
@@ -320,45 +760,252 @@
       }
     }
 
-    function handleLogin(e) {
-      e.preventDefault();
-      
-      const emailInput = document.getElementById('email').value.trim();
-      const passwordInput = document.getElementById('password').value;
+    async function handleLogin(e) {
+      if (e) e.preventDefault();
 
-      const expectedEmail = localStorage.getItem('heallens_email') || 'admin@heallens.com';
-      const expectedPassword = localStorage.getItem('heallens_password') || 'admin123';
+      const errorBanner = document.getElementById('login-error-banner');
+      if (errorBanner) errorBanner.style.display = 'none';
 
-      if (emailInput.toLowerCase() !== expectedEmail.toLowerCase() || passwordInput !== expectedPassword) {
-        showToast('Access Denied. Invalid email or passcode.', 'error');
+      const emailInput = document.getElementById('email') ? document.getElementById('email').value.trim() : '';
+      const passwordInput = document.getElementById('password') ? document.getElementById('password').value : '';
+
+      // 1. Validation: Both fields required
+      if (!emailInput || !passwordInput) {
+        const msg = 'Both email address and password are required.';
+        if (errorBanner) { errorBanner.textContent = '⚠️ ' + msg; errorBanner.style.display = 'block'; }
+        showNotification('⚠️ Validation Error', msg, 'warning');
         return;
       }
 
-      const btn = e.target.querySelector('.btn-login');
-      btn.innerHTML = '<span class="loader"></span> Access Granted...';
-      btn.disabled = true;
+      // 2. Validation: Valid email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailInput)) {
+        const msg = 'Please enter a valid email address.';
+        if (errorBanner) { errorBanner.textContent = '⚠️ ' + msg; errorBanner.style.display = 'block'; }
+        showNotification('⚠️ Validation Error', msg, 'warning');
+        return;
+      }
 
-      // Simulate network delay
-      setTimeout(() => {
-        window.location.href = 'dashboard.html';
-      }, 1200);
+      const btn = (e && e.target && typeof e.target.querySelector === 'function')
+        ? (e.target.querySelector('.btn-login') || e.target.querySelector('button[type="submit"]'))
+        : document.querySelector('.btn-login');
+      const originalBtnText = btn ? btn.innerHTML : 'Sign In →';
+
+      if (btn) {
+        btn.innerHTML = '<span class="loader"></span> Authenticating...';
+        btn.disabled = true;
+      }
+
+      try {
+        const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+
+        let authenticated = false;
+
+        if (client) {
+          const { data, error } = await client.auth.signInWithPassword({
+            email: emailInput,
+            password: passwordInput
+          });
+
+          if (!error && data && data.session) {
+            authenticated = true;
+          }
+        }
+
+        // Demo / Local Credentials Fallback Check if Supabase didn't authenticate
+        if (!authenticated) {
+          const savedEmail = localStorage.getItem('heallens_email') || 'admin@heallens.com';
+          const savedPassword = localStorage.getItem('heallens_password') || 'admin123';
+
+          if (emailInput.toLowerCase() === savedEmail.toLowerCase() && passwordInput === savedPassword) {
+            authenticated = true;
+            localStorage.setItem('heallens_demo_session', 'true');
+          }
+        }
+
+        if (authenticated) {
+          if (btn) {
+            btn.innerHTML = '<span class="loader"></span> Access Granted...';
+          }
+          if (errorBanner) errorBanner.style.display = 'none';
+          showNotification(
+            '✓ Authentication Successful',
+            'Access granted.\nRedirecting to dashboard...',
+            'success'
+          );
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 700);
+        } else {
+          if (errorBanner) {
+            errorBanner.textContent = '⚠️ Invalid email or password. Please check your credentials.';
+            errorBanner.style.display = 'block';
+          }
+          showNotification(
+            '⚠️ Warning',
+            'Invalid email or password.\nPlease check your credentials.',
+            'warning'
+          );
+          if (btn) {
+            btn.innerHTML = originalBtnText;
+            btn.disabled = false;
+          }
+        }
+      } catch (err) {
+        if (errorBanner) {
+          errorBanner.textContent = '⚠️ Invalid email or password. Please check your credentials.';
+          errorBanner.style.display = 'block';
+        }
+        showNotification(
+          '⚠️ Warning',
+          'Invalid email or password.\nPlease check your credentials.',
+          'warning'
+        );
+        if (btn) {
+          btn.innerHTML = originalBtnText;
+          btn.disabled = false;
+        }
+      }
+    }
+
+    function openResetPasswordModal() {
+      const modal = document.getElementById('reset-password-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+      }
+    }
+
+    async function handleResetPasswordSubmit(e) {
+      e.preventDefault();
+
+      const newPassword = document.getElementById('reset-new-password').value;
+      const confirmPassword = document.getElementById('reset-confirm-password').value;
+
+      // 1. Validation: Required fields
+      if (!newPassword || !confirmPassword) {
+        showNotification('⚠️ Validation Error', 'All fields are required.', 'warning');
+        return;
+      }
+
+      // 2. Validation: Password length (min 6 characters)
+      if (newPassword.length < 6) {
+        showNotification('⚠️ Validation Error', 'Password must be at least 6 characters long.', 'warning');
+        return;
+      }
+
+      // 3. Validation: Password mismatch
+      if (newPassword !== confirmPassword) {
+        showNotification('⚠️ Validation Error', 'Passwords do not match.', 'warning');
+        return;
+      }
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalBtnText = btn ? btn.innerHTML : 'Update Password →';
+
+      if (btn) {
+        btn.innerHTML = '<span class="loader"></span> Updating Password...';
+        btn.disabled = true;
+      }
+
+      try {
+        const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+
+        if (!client) {
+          showNotification('⚠️ Error', 'Supabase client is not initialized.', 'error');
+          if (btn) {
+            btn.innerHTML = originalBtnText;
+            btn.disabled = false;
+          }
+          return;
+        }
+
+        const { data, error } = await client.auth.updateUser({
+          password: newPassword
+        });
+
+        if (error) {
+          showNotification('⚠️ Update Failed', error.message, 'error');
+          if (btn) {
+            btn.innerHTML = originalBtnText;
+            btn.disabled = false;
+          }
+        } else {
+          showNotification(
+            '✓ Password Updated',
+            'Your password has been changed successfully.\nRedirecting...',
+            'success'
+          );
+          const modal = document.getElementById('reset-password-modal');
+          if (modal) modal.classList.add('hidden');
+          window.isPasswordRecovery = false;
+
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 700);
+        }
+      } catch (err) {
+        showNotification('⚠️ Update Failed', err.message || 'An error occurred while updating password.', 'error');
+        if (btn) {
+          btn.innerHTML = originalBtnText;
+          btn.disabled = false;
+        }
+      }
+    }
+
+    function isRecoveryLink() {
+      return window.location.search.includes('type=recovery') || window.location.hash.includes('type=recovery');
+    }
+
+    // Phase 6.6: Session Management & Route Protection for Login Page
+    async function checkLoginSession() {
+      try {
+        const isRecovery = isRecoveryLink();
+        if (isRecovery) {
+          window.isPasswordRecovery = true;
+          openResetPasswordModal();
+        }
+
+        const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+        if (!client) return;
+
+        // Part 1: Check if an active session already exists
+        const { data: { session } } = await client.auth.getSession();
+        if (session && !window.isPasswordRecovery && !isRecovery) {
+          const isEmailVerified = Boolean(session.user && (session.user.email_confirmed_at || session.user.confirmed_at));
+          if (isEmailVerified) {
+            window.location.href = 'dashboard.html';
+            return;
+          }
+        }
+
+        // Part 3: Authentication State Listener
+        client.auth.onAuthStateChange((event, session) => {
+          if (event === 'PASSWORD_RECOVERY' || isRecoveryLink()) {
+            window.isPasswordRecovery = true;
+            openResetPasswordModal();
+          } else if (event === 'SIGNED_IN' && session && !window.isPasswordRecovery && !isRecoveryLink()) {
+            const isEmailVerified = Boolean(session.user && (session.user.email_confirmed_at || session.user.confirmed_at));
+            if (isEmailVerified) {
+              window.location.href = 'dashboard.html';
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Error checking session on login page:', err);
+      }
     }
 
     // DOM Initializer
     document.addEventListener('DOMContentLoaded', () => {
-      const isCustomEmail = localStorage.getItem('heallens_email');
-      const isCustomPassword = localStorage.getItem('heallens_password');
-      
-      if (isCustomEmail || isCustomPassword) {
-        // Clear login inputs so user has to type and remember
-        document.getElementById('email').value = '';
-        document.getElementById('password').value = '';
-      } else {
-        // Autofill default credential details on initial session
-        document.getElementById('email').value = 'admin@heallens.com';
-        document.getElementById('password').value = 'admin123';
+      if (isRecoveryLink()) {
+        window.isPasswordRecovery = true;
+        openResetPasswordModal();
       }
-      
+      checkLoginSession();
+      const emailEl = document.getElementById('email');
+      const passEl = document.getElementById('password');
+      if (emailEl) emailEl.value = '';
+      if (passEl) passEl.value = '';
       updateDefaultPill();
     });
   </script>

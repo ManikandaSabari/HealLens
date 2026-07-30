@@ -12,6 +12,13 @@ class Scanner {
     console.log("[HealLens Scanner] Initializing...");
     this.initListeners();
     this.updateSymptomVisibility(); // Initial filter
+
+    // Automatic camera resource cleanup on page/tab blur
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        this.closeCamera();
+      }
+    });
   }
 
   initListeners() {

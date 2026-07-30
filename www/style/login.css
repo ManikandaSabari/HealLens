@@ -84,7 +84,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.login-form.hidden { display: none; }
+.hidden, .login-form.hidden { display: none !important; }
 
 .form-group { margin-bottom: 20px; }
 .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -162,6 +162,33 @@ input:focus {
 }
 .social-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
 .social-btn img { width: 18px; height: 18px; }
+
+/* Official Google Authentication Button */
+.google-btn {
+  width: 100%;
+  padding: 14px;
+  background: #ffffff;
+  border: none;
+  border-radius: 14px;
+  color: #1f1f1f;
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.google-btn:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+.google-btn:active {
+  transform: translateY(0);
+}
 
 .login-footer {
   text-align: center; margin-top: 32px;

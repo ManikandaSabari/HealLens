@@ -99,6 +99,12 @@ function setupNavigation() {
 }
 
 function showTab(tabName) {
+  if (tabName !== "scanner") {
+    if (window.scanner && typeof window.scanner.closeCamera === "function") {
+      window.scanner.closeCamera();
+    }
+  }
+
   document.querySelectorAll(".tab-content").forEach(s => s.style.display = "none");
   const target = document.getElementById(`tab-${tabName}`);
   if (target) target.style.display = "block";
@@ -163,9 +169,12 @@ function openHistoryWithSubTab(subtab) {
   switchHistorySubTab(subtab);
 }
 
-function switchHistorySubTab(subtab) {
+async function switchHistorySubTab(subtab) {
   if (window.historyManager) {
     window.historyManager.activeSubTab = subtab;
+    if (typeof window.historyManager.fetchRemoteHistory === "function") {
+      await window.historyManager.fetchRemoteHistory();
+    }
   }
   renderHistoryTab();
 }
@@ -507,9 +516,13 @@ function appendChatMessage(role, text, id) {
 }
 
 // ─── SOS ─────────────────────────────────────────────────────────────────────
-function renderSOSContacts() {
+async function renderSOSContacts() {
   const container = document.getElementById("sos-contacts-list");
   if (!container) return;
+
+  if (window.sosManager && typeof window.sosManager.fetchRemoteContacts === "function") {
+    await window.sosManager.fetchRemoteContacts();
+  }
 
   const contacts = window.sosManager?.getContacts() || [];
   if (contacts.length === 0) {
@@ -519,7 +532,7 @@ function renderSOSContacts() {
   container.innerHTML = contacts.map(c => window.sosManager.renderContactCard(c)).join("");
 }
 
-function submitSOSContact() {
+async function submitSOSContact() {
   const name = document.getElementById("sos-contact-name")?.value?.trim();
   const phone = document.getElementById("sos-contact-phone")?.value?.trim();
   const relation = document.getElementById("sos-contact-relation")?.value?.trim();
@@ -529,8 +542,8 @@ function submitSOSContact() {
     return;
   }
 
-  window.sosManager?.addContact({ name, phone, relation: relation || "Contact" });
-  renderSOSContacts();
+  await window.sosManager?.addContact({ name, phone, relation: relation || "Contact" });
+  await renderSOSContacts();
 
   // Reset form
   ["sos-contact-name", "sos-contact-phone", "sos-contact-relation"].forEach(id => {

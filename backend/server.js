@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const { verifySupabaseConnection } = require("./config/supabase");
 const clinicalRecordsRoutes = require("./routes/clinicalRecords");
+const emergencyContactsRoutes = require("./routes/emergencyContacts");
 
 // Load environment variables
 dotenv.config();
@@ -16,6 +17,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/clinical-records", clinicalRecordsRoutes);
+app.use("/api/emergency-contacts", emergencyContactsRoutes);
 
 // Root Endpoint
 app.get("/", (req, res) => {

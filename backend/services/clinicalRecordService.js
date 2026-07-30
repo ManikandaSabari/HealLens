@@ -8,6 +8,7 @@ const { supabase } = require("../config/supabase");
  */
 async function createClinicalRecord(recordData) {
   const dbPayload = {
+    user_id: recordData.user_id || null,
     Name: recordData.patient_name,
     Age: recordData.age,
     Gender: recordData.gender,
@@ -32,6 +33,29 @@ async function createClinicalRecord(recordData) {
   return data ? data[0] : null;
 }
 
+/**
+ * Retrieve clinical records from Supabase clinical_records table
+ * Ordered by created_at descending. Filtered by user_id if provided.
+ * @param {string|null} userId
+ * @returns {Promise<Array>} List of clinical records
+ */
+async function getClinicalRecords(userId = null) {
+  let query = supabase.from("clinical_records").select("*");
+
+  if (userId) {
+    query = query.eq("user_id", userId);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data || [];
+}
+
 module.exports = {
-  createClinicalRecord
+  createClinicalRecord,
+  getClinicalRecords
 };
