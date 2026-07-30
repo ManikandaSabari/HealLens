@@ -1,0 +1,115 @@
+{
+  "executionDate": "2026-07-30T16:53:25.416609+00:00",
+  "baseUrl": "https://heallens.vercel.app/",
+  "deploymentStatus": "PASS",
+  "documentedCases": 1200,
+  "executedCases": 27,
+  "passed": 27,
+  "failed": 0,
+  "skipped": 0,
+  "blocked": 300,
+  "passPercentage": 100.0,
+  "selenium": {
+    "documented": 300,
+    "executed": 11,
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "blocked": 0,
+    "duration": "4.20s",
+    "modules": {
+      "Auth": {
+        "total": 3,
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      "Dashboard": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "ImageAnalysis": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "ReportAnalysis": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "ClinicalHistory": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "EmergencySOS": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "Profile": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "UI": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "failed_tests": []
+  },
+  "appium": {
+    "documented": 300,
+    "executed": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "blocked": 300,
+    "status": "BLOCKED",
+    "reason": "Appium device/emulator infrastructure unavailable in CI runner environment"
+  },
+  "vulnerability": {
+    "documented": 300,
+    "executed": 8,
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0,
+    "blocked": 0,
+    "probes": []
+  },
+  "loadTesting": {
+    "documented": 300,
+    "executed": 8,
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0,
+    "blocked": 0,
+    "metrics": {
+      "requestsPerSec": 27.6,
+      "minResponseMs": 120.0,
+      "avgResponseMs": 181.0,
+      "maxResponseMs": 250.0,
+      "p95Ms": 250.0,
+      "p99Ms": 250.0
+    }
+  },
+  "performance": {
+    "requestsPerSec": 27.6,
+    "minResponseMs": 120.0,
+    "avgResponseMs": 181.0,
+    "maxResponseMs": 250.0,
+    "p95Ms": 250.0,
+    "p99Ms": 250.0
+  }
+}

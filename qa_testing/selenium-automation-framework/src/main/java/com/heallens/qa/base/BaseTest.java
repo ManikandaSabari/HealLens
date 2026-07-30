@@ -36,8 +36,11 @@ public class BaseTest {
         } else {
             WebDriverManager.chromedriver().setup();
             ChromeOptions options = new ChromeOptions();
-            if (Boolean.parseBoolean(System.getProperty("headless", "false"))) {
-                options.addArguments("--headless=new", "--disable-gpu", "--window-size=1920,1080");
+            boolean isHeadless = Boolean.parseBoolean(System.getProperty("headless", "false")) 
+                    || "true".equalsIgnoreCase(System.getenv("HEADLESS"))
+                    || "true".equalsIgnoreCase(System.getProperty("HEADLESS"));
+            if (isHeadless) {
+                options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1920,1080", "--remote-allow-origins=*");
             }
             driver = new ChromeDriver(options);
         }

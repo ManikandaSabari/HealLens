@@ -1,0 +1,81 @@
+name: HealLens AI — QA Automation Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: 'Deployment / Test Environment'
+        required: true
+        default: 'production'
+
+permissions:
+  contents: read
+  checks: write
+  statuses: write
+
+jobs:
+  qa-automation-testing:
+    name: Selenium TestNG E2E & Multi-Format Reporting Pipeline
+    runs-on: ubuntu-latest
+
+    env:
+      BASE_URL: ${{ secrets.BASE_URL || vars.BASE_URL || 'https://heallens.vercel.app/' }}
+      HEADLESS: 'true'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+          cache-dependency-path: qa_testing/selenium-automation-framework/pom.xml
+
+      - name: Set up Python 3.11 for QA Reporting Engine
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Live Application Availability & Assets Check
+        run: |
+          echo "Verifying live target application availability at: ${{ env.BASE_URL }}"
+          curl -sS -I "${{ env.BASE_URL }}" | head -n 10
+          echo "Live application accessibility verified."
+
+      - name: Run Selenium TestNG E2E Suite (Maven)
+        run: |
+          echo "Executing Selenium TestNG automation suite against live application..."
+          cd qa_testing/selenium-automation-framework
+          mvn clean test -DbaseUrl="${{ env.BASE_URL }}" -Dheadless=true -Dsurefire.rerunFailingTestsCount=2
+
+      - name: Generate Multi-Domain Excel Master Report
+        if: always()
+        run: |
+          pip install openpyxl
+          python qa_testing/scripts/generate_phase7_excel_reports.py
+
+      - name: Process Test Results & Generate Reports (JSON, HTML, Screenshots, Summary)
+        if: always()
+        run: |
+          python qa_testing/scripts/process_test_results.py
+
+      - name: Upload QA Artifacts Package (30-Day Retention)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: HealLens-AI-QA-Execution-Artifacts
+          path: |
+            qa_testing/Test_Results/
+            qa_testing/selenium-automation-framework/target/surefire-reports/
+            qa_testing/selenium-automation-framework/test-output/ExtentReport.html
+            qa_testing/selenium-automation-framework/screenshots/*.png
+            qa_testing/*.xlsx
+            qa_testing/docs/*.md
+          retention-days: 30

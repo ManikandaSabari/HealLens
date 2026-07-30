@@ -1,0 +1,7 @@
+# Temporary Python Cache
+__pycache__/
+*.pyc
+
+# Maven Target Directory
+target/
+*.class

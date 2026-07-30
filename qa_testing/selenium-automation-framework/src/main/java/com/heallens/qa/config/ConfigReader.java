@@ -8,14 +8,13 @@ public class ConfigReader {
     private static Properties properties;
 
     static {
+        properties = new Properties();
         try {
-            properties = new Properties();
             FileInputStream fis = new FileInputStream("src/main/java/com/heallens/qa/config/config.properties");
             properties.load(fis);
         } catch (IOException e) {
             // Default fallback settings
-            properties = new Properties();
-            properties.setProperty("baseUrl", "http://localhost:5500/login.html");
+            properties.setProperty("baseUrl", "https://heallens.vercel.app/");
             properties.setProperty("browser", "chrome");
             properties.setProperty("implicitWait", "10");
             properties.setProperty("explicitWait", "15");
@@ -23,14 +22,34 @@ public class ConfigReader {
     }
 
     public static String getProperty(String key) {
-        return System.getProperty(key, properties.getProperty(key));
+        String sysProp = System.getProperty(key);
+        if (sysProp != null && !sysProp.trim().isEmpty()) {
+            return sysProp.trim();
+        }
+        String envVar = System.getenv(key);
+        if (envVar != null && !envVar.trim().isEmpty()) {
+            return envVar.trim();
+        }
+        String envUpper = System.getenv(key.toUpperCase());
+        if (envUpper != null && !envUpper.trim().isEmpty()) {
+            return envUpper.trim();
+        }
+        return properties.getProperty(key, "");
     }
 
     public static String getBaseUrl() {
-        return getProperty("baseUrl");
+        String url = getProperty("baseUrl");
+        if (url == null || url.trim().isEmpty()) {
+            url = getProperty("BASE_URL");
+        }
+        if (url == null || url.trim().isEmpty()) {
+            url = "https://heallens.vercel.app/";
+        }
+        return url;
     }
 
     public static String getBrowser() {
-        return getProperty("browser");
+        String browser = getProperty("browser");
+        return (browser != null && !browser.trim().isEmpty()) ? browser : "chrome";
     }
 }
