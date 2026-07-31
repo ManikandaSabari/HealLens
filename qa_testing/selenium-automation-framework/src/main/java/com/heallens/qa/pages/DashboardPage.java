@@ -6,17 +6,17 @@ import org.openqa.selenium.WebDriver;
 public class DashboardPage {
     private WebDriver driver;
 
-    private By userProfileHeader = By.cssSelector(".user-profile");
-    private By userNameDisplay = By.id("user-name-display");
+    private By userProfileHeader = By.cssSelector("#user-profile-card, .user-profile-card, .user-profile");
+    private By userNameDisplay = By.cssSelector("#user-greeting-text, #user-name-display");
     private By logoutBtn = By.id("logout-btn");
     private By hamburgerMenuBtn = By.id("hamburger-btn");
 
     // Sidebar Links
-    private By navScanner = By.xpath("//a[contains(@href,'#scanner') or contains(text(),'Scanner')]");
-    private By navLabAnalyzer = By.xpath("//a[contains(text(),'Lab Analyzer')]");
-    private By navHistory = By.xpath("//a[contains(text(),'History')]");
-    private By navEmergencyContacts = By.xpath("//a[contains(text(),'Emergency Contacts')]");
-    private By navProfile = By.xpath("//a[contains(text(),'Profile')]");
+    private By navScanner = By.xpath("//*[@data-tab='scanner'] | //*[contains(text(),'Scanner')]");
+    private By navLabAnalyzer = By.xpath("//*[@data-tab='lab-analyzer'] | //*[contains(text(),'Lab Analyzer') or contains(text(),'Report Analyzer')]");
+    private By navHistory = By.xpath("//*[@data-tab='history' or @id='nav-btn-history'] | //*[contains(text(),'History')]");
+    private By navEmergencyContacts = By.xpath("//*[@data-tab='sos'] | //*[contains(text(),'Emergency')]");
+    private By navProfile = By.xpath("//*[@data-tab='profile'] | //*[contains(text(),'Profile')]");
 
     public DashboardPage(WebDriver driver) {
         this.driver = driver;

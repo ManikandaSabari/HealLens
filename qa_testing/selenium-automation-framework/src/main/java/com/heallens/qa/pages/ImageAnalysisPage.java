@@ -10,10 +10,10 @@ public class ImageAnalysisPage {
     private By bodyPartSelect = By.id("body-part-select");
     private By fileInput = By.id("file-input");
     private By analyzeBtn = By.id("analyze-btn");
-    private By resultCard = By.id("analysis-result-card");
-    private By diseaseName = By.id("result-disease-name");
-    private By confidenceValue = By.id("result-confidence-value");
-    private By severityBadge = By.id("result-severity-badge");
+    private By resultCard = By.cssSelector("#result-card, #analysis-result-card");
+    private By diseaseName = By.cssSelector("#res-disease, #result-disease-name");
+    private By confidenceValue = By.cssSelector("#res-confidence, #result-confidence-value");
+    private By severityBadge = By.cssSelector("#res-severity-badge, #result-severity-badge");
 
     public ImageAnalysisPage(WebDriver driver) {
         this.driver = driver;

@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      BASE_URL: ${{ secrets.BASE_URL || vars.BASE_URL || 'https://heallens.vercel.app/' }}
+      BASE_URL: ${{ secrets.BASE_URL || vars.BASE_URL || 'https://heallenss.vercel.app/' }}
       HEADLESS: 'true'
 
     steps:
@@ -42,6 +42,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Install Headless Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
       - name: Live Application Availability & Assets Check
         run: |

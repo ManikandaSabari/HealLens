@@ -14,7 +14,7 @@ public class ConfigReader {
             properties.load(fis);
         } catch (IOException e) {
             // Default fallback settings
-            properties.setProperty("baseUrl", "https://heallens.vercel.app/");
+            properties.setProperty("baseUrl", "https://heallenss.vercel.app/");
             properties.setProperty("browser", "chrome");
             properties.setProperty("implicitWait", "10");
             properties.setProperty("explicitWait", "15");
@@ -43,7 +43,7 @@ public class ConfigReader {
             url = getProperty("BASE_URL");
         }
         if (url == null || url.trim().isEmpty()) {
-            url = "https://heallens.vercel.app/";
+            url = "https://heallenss.vercel.app/";
         }
         return url;
     }

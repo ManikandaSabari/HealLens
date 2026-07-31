@@ -23,3 +23,14 @@ logs/
 # Operating System Files
 .DS_Store
 Thumbs.db
+
+# QA Automation Generated Reports & Artifacts
+target/
+test-output/
+screenshots/
+qa_testing/Test_Results/
+qa_testing/selenium-automation-framework/target/
+qa_testing/selenium-automation-framework/test-output/
+qa_testing/selenium-automation-framework/screenshots/
+~$*.xlsx
+

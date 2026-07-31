@@ -9,11 +9,11 @@ import java.util.List;
 public class ClinicalHistoryPage {
     private WebDriver driver;
 
-    private By historyListContainer = By.id("history-list-container");
-    private By historyCardItem = By.cssSelector(".history-card");
-    private By filterAllBtn = By.id("filter-all");
-    private By filterImageScansBtn = By.id("filter-images");
-    private By clearAllBtn = By.id("clear-all-history-btn");
+    private By historyListContainer = By.cssSelector("#history-list, #history-list-container");
+    private By historyCardItem = By.cssSelector(".history-card, .history-item");
+    private By filterAllBtn = By.cssSelector("#history-tab-image, #filter-all");
+    private By filterImageScansBtn = By.cssSelector("#history-tab-image, #filter-images");
+    private By clearAllBtn = By.cssSelector("#btn-clear-history, #clear-all-history-btn");
 
     public ClinicalHistoryPage(WebDriver driver) {
         this.driver = driver;

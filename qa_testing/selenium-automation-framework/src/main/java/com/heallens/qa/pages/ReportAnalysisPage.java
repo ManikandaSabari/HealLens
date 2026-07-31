@@ -7,9 +7,9 @@ public class ReportAnalysisPage {
     private WebDriver driver;
 
     private By reportFileInput = By.id("lab-file-input");
-    private By runAnalysisBtn = By.id("run-lab-analysis-btn");
-    private By reportResultContainer = By.id("lab-report-result");
-    private By saveReportBtn = By.id("save-lab-report-btn");
+    private By runAnalysisBtn = By.cssSelector("#lab-run-analysis-btn, #run-lab-analysis-btn");
+    private By reportResultContainer = By.cssSelector("#lab-result-card, #lab-report-result");
+    private By saveReportBtn = By.cssSelector("#save-lab-report-btn, .save-report-btn");
 
     public ReportAnalysisPage(WebDriver driver) {
         this.driver = driver;
