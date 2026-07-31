@@ -5,6 +5,7 @@ import com.heallens.qa.utils.WaitUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.JavascriptExecutor;
 
 public class LoginPage {
     private WebDriver driver;
@@ -54,7 +55,7 @@ public class LoginPage {
     public void clickLogin() {
         ensureOnLoginPage();
         WebElement element = WaitUtils.waitForElementClickable(driver, loginSubmitBtn, 10);
-        element.click();
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
     }
 
     public void clickSignupTab() {
