@@ -59,10 +59,15 @@ public class LoginPage {
     }
 
     public void clickSignupTab() {
-        ensureOnLoginPage();
-        WebElement element = WaitUtils.waitForElementClickable(driver, signupTab, 10);
-        element.click();
-    }
+    ensureOnLoginPage();
+    WebElement element = WaitUtils.waitForElementClickable(driver, signupTab, 10);
+
+    ((JavascriptExecutor) driver)
+            .executeScript("arguments[0].scrollIntoView(true);", element);
+
+    ((JavascriptExecutor) driver)
+            .executeScript("arguments[0].click();", element);
+}
 
     public void clickForgotPassword() {
         ensureOnLoginPage();
