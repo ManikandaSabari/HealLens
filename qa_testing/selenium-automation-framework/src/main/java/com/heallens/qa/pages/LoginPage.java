@@ -6,6 +6,10 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
 
 public class LoginPage {
     private WebDriver driver;
@@ -14,7 +18,7 @@ public class LoginPage {
     private By emailInput = By.id("email");
     private By passwordInput = By.id("password");
     private By loginSubmitBtn = By.cssSelector("#email-form button[type='submit']");
-    private By signupTab = By.xpath("//*[contains(text(),'Sign Up') or contains(text(),'Create Account')]");
+    private By signupTab = By.cssSelector("span[onclick*='signup']");
     private By forgotPasswordLink = By.cssSelector(".forgot-link");
     private By googleAuthBtn = By.cssSelector(".google-btn");
     private By loginErrorBanner = By.id("login-error-banner");
@@ -35,6 +39,21 @@ public class LoginPage {
                 }
                 driver.get(loginUrl);
             }
+            dismissDisclaimerIfPresent();
+        }
+    }
+
+    private void dismissDisclaimerIfPresent() {
+        try {
+            By disclaimerBtn = By.id("disclaimer-accept-btn");
+            java.util.List<WebElement> buttons = driver.findElements(disclaimerBtn);
+            if (!buttons.isEmpty() && buttons.get(0).isDisplayed()) {
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", buttons.get(0));
+                By overlay = By.id("medical-ai-disclaimer-overlay");
+                WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(overlay));
+            }
+        } catch (Exception ignored) {
         }
     }
 
@@ -59,15 +78,17 @@ public class LoginPage {
     }
 
     public void clickSignupTab() {
-    ensureOnLoginPage();
-    WebElement element = WaitUtils.waitForElementClickable(driver, signupTab, 10);
+        ensureOnLoginPage();
+        dismissDisclaimerIfPresent();
+        WaitUtils.waitForElementVisible(driver, signupTab, 10);
+        WebElement element = WaitUtils.waitForElementClickable(driver, signupTab, 10);
 
-    ((JavascriptExecutor) driver)
-            .executeScript("arguments[0].scrollIntoView(true);", element);
+        ((JavascriptExecutor) driver)
+                .executeScript("arguments[0].scrollIntoView(true);", element);
 
-    ((JavascriptExecutor) driver)
-            .executeScript("arguments[0].click();", element);
-}
+        ((JavascriptExecutor) driver)
+                .executeScript("arguments[0].click();", element);
+    }
 
     public void clickForgotPassword() {
         ensureOnLoginPage();

@@ -12,7 +12,7 @@ public class SignupPage {
     private By emailInput = By.id("signup-email");
     private By passwordInput = By.id("signup-password");
     private By submitBtn = By.cssSelector("#signup-form button[type='submit']");
-    private By signinTab = By.xpath("//button[contains(text(),'Sign In')]");
+    private By signinTab = By.cssSelector("span[onclick*='signin']");
 
     public SignupPage(WebDriver driver) {
         this.driver = driver;
