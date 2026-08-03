@@ -17,6 +17,7 @@
 
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="js/disclaimer.js"></script>
 
   <style>
     /* Header Balance & Alignment Polish */
@@ -360,6 +361,48 @@
       color: rgba(255, 255, 255, 0.65);
       line-height: 1.5;
     }
+
+    /* ─── Mobile Responsiveness Polish ─── */
+    @media (max-width: 900px) {
+      .dashboard-topbar {
+        height: auto;
+        min-height: 56px;
+        padding: 8px 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .topbar-right {
+        gap: 8px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .dashboard-topbar {
+        padding: 6px 10px;
+      }
+      .topbar-right {
+        gap: 6px;
+      }
+      .user-profile-card {
+        padding: 0 8px 0 4px;
+        gap: 4px;
+        height: 32px;
+      }
+      .user-greeting-text {
+        font-size: 0.78rem;
+      }
+      .user-email-text {
+        display: none;
+      }
+      #browse-btn, #camera-btn {
+        width: 100%;
+        max-width: 220px;
+      }
+      .upload-area {
+        padding: 24px 16px;
+        min-height: 180px;
+      }
+    }
   </style>
 
   <!-- Supabase Client Library & Route Protection (Phase 6.6 & 6.7.1) -->
@@ -406,18 +449,29 @@
         const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
         if (!client) return;
 
-        const { data: { user }, error } = await client.auth.getUser();
+        let user = null;
+        try {
+          const { data: userData } = await client.auth.getUser();
+          user = userData ? userData.user : null;
+        } catch (e) {}
+
+        if (!user) {
+          const { data: sessionData } = await client.auth.getSession();
+          user = sessionData?.session?.user || null;
+        }
 
         if (user) {
           const userMeta = user.user_metadata || {};
           const appMeta = user.app_metadata || {};
+          const nameFromMeta = userMeta.full_name || userMeta.name || userMeta.displayName || userMeta.display_name;
+          const nameFromEmail = user.email ? (user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1)) : "User";
 
           window.currentUser = {
             id: user.id,
             email: user.email,
-            fullName: userMeta.full_name || userMeta.name || "User",
+            fullName: nameFromMeta || nameFromEmail,
             avatar: userMeta.avatar_url || userMeta.picture || null,
-            provider: appMeta.provider || "email",
+            provider: appMeta.provider || (user.app_metadata?.provider) || "email",
             metadata: userMeta
           };
           console.log('Universal Authenticated User Profile Loaded:', window.currentUser);
@@ -442,9 +496,56 @@
           return;
         }
 
+        const isOAuthCallback = Boolean(
+          window.location.hash.includes('access_token=') ||
+          window.location.search.includes('code=') ||
+          window.location.href.includes('access_token=') ||
+          window.location.href.includes('code=')
+        );
+
         // Part 2: Check Supabase session on dashboard load
-        const { data: { session }, error } = await client.auth.getSession();
-        if (error || !session) {
+        let { data: { session }, error } = await client.auth.getSession();
+
+        if ((!session || error) && isOAuthCallback) {
+          session = await new Promise((resolve) => {
+            let resolved = false;
+
+            const { data: { subscription } } = client.auth.onAuthStateChange((event, newSession) => {
+              if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && newSession) {
+                if (!resolved) {
+                  resolved = true;
+                  if (subscription && typeof subscription.unsubscribe === 'function') subscription.unsubscribe();
+                  resolve(newSession);
+                }
+              }
+            });
+
+            const intervalId = setInterval(async () => {
+              if (resolved) {
+                clearInterval(intervalId);
+                return;
+              }
+              const res = await client.auth.getSession();
+              if (res.data && res.data.session) {
+                resolved = true;
+                clearInterval(intervalId);
+                if (subscription && typeof subscription.unsubscribe === 'function') subscription.unsubscribe();
+                resolve(res.data.session);
+              }
+            }, 300);
+
+            setTimeout(() => {
+              if (!resolved) {
+                resolved = true;
+                clearInterval(intervalId);
+                if (subscription && typeof subscription.unsubscribe === 'function') subscription.unsubscribe();
+                resolve(null);
+              }
+            }, 3000);
+          });
+        }
+
+        if (!session) {
           window.location.href = 'login.html';
           return;
         }

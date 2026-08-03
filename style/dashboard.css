@@ -580,36 +580,59 @@
 @keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
 
 .chat-input-area {
-  display: flex; gap: var(--space-sm);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
   padding: var(--space-md);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-top: none;
   border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  box-sizing: border-box;
 }
 #chat-input {
-  flex: 1; padding: 12px 16px;
+  flex: 1; min-width: 0;
+  height: 48px; min-height: 48px; max-height: 48px;
+  padding: 0 16px;
   background: var(--bg-input);
   border: 1.5px solid var(--border-color);
   border-radius: var(--radius-pill);
   color: var(--text-primary); outline: none; font-size: 0.9rem;
+  box-sizing: border-box; margin: 0; line-height: 45px;
+  align-self: center;
 }
 #chat-input:focus { border-color: var(--color-primary); }
-.btn-chat-send {
-  padding: 12px 20px; border-radius: var(--radius-pill);
+.btn-chat-send, #chat-send-btn {
+  width: auto; min-width: 90px; max-width: 110px;
+  height: 48px; min-height: 48px; max-height: 48px;
+  flex: 0 0 auto; flex-grow: 0; flex-shrink: 0;
+  padding: 0 20px; border-radius: 24px;
   background: var(--grad-primary); color: #fff;
   font-weight: 700; font-size: 0.88rem;
   transition: all var(--transition-base);
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box; margin: 0; line-height: 1;
+  white-space: nowrap; align-self: center;
 }
 .btn-chat-send:hover { transform: scale(1.05); }
 #chat-mic-btn {
-  padding: 12px; border-radius: var(--radius-pill);
+  width: 48px; min-width: 48px; max-width: 48px;
+  height: 48px; min-height: 48px; max-height: 48px;
+  flex: 0 0 48px; flex-shrink: 0;
+  padding: 0; border-radius: 50%;
   background: rgba(0,212,255,0.1);
   border: 1px solid rgba(0,212,255,0.25);
   color: var(--color-primary); font-size: 1.1rem;
   transition: all var(--transition-base);
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box; margin: 0; line-height: 1;
+  align-self: center;
 }
 #chat-mic-btn:hover { background: rgba(0,212,255,0.2); }
+
+
 
 /* ─── History Tab ─── */
 .history-type-tabs {
@@ -1154,3 +1177,432 @@
 /* ─── SOS Add Form collapsible toggle ─── */
 #sos-add-form { display: none; }
 #sos-add-form.open { display: block; }
+
+/* ─── Mobile Responsiveness Enhancements (320px - 480px & Landscape) ─── */
+@media (max-width: 900px) {
+  .sidebar { width: 270px; max-width: 85vw; }
+  .page-body { padding: 16px 12px; }
+  .form-row { grid-template-columns: 1fr; }
+  .biomarker-grid { grid-template-columns: 1fr; }
+  .lab-profile-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+}
+
+@media (max-width: 768px) {
+  /* Clean 2-Row Header Layout on Mobile */
+  .dashboard-topbar {
+    height: auto !important;
+    min-height: auto !important;
+    padding: 10px 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  /* Row 1: Hamburger Menu + Page Title */
+  .topbar-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    flex-shrink: 0 !important;
+  }
+  .hamburger-btn {
+    display: block !important;
+    font-size: 1.4rem !important;
+    line-height: 1 !important;
+    padding: 4px !important;
+  }
+  .topbar-title {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Row 2: [ Welcome Card ] [ AI Engine ] [ Logout ] */
+  .topbar-right {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: 38px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 1. User Profile Card */
+  .user-profile-card {
+    flex: 1 1 auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    padding: 4px 8px !important;
+    margin-right: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    border-radius: 20px !important;
+  }
+  .user-avatar-wrap {
+    width: 26px !important;
+    height: 26px !important;
+    flex-shrink: 0 !important;
+  }
+  .user-profile-info {
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+  }
+  .user-greeting-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    line-height: 1.2 !important;
+  }
+  .user-greeting-text {
+    font-size: clamp(0.68rem, 2.5vw, 0.78rem) !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 150px !important;
+    flex-shrink: 1 !important;
+  }
+  .user-provider-badge {
+    font-size: 0.55rem !important;
+    padding: 1px 4px !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+  }
+  .user-email-text {
+    display: block !important;
+    font-size: 0.65rem !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 150px !important;
+  }
+
+  #voice-toggle-btn {
+    display: none !important;
+  }
+
+  /* 2. AI Engine Badge */
+  .topbar-badge {
+    width: 125px !important;
+    min-width: 125px !important;
+    max-width: 125px !important;
+    height: 38px !important;
+    line-height: 38px !important;
+    padding: 0 6px !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    border-radius: 20px !important;
+  }
+
+  /* 3. Logout Button */
+  .logout-btn {
+    width: 85px !important;
+    min-width: 85px !important;
+    max-width: 85px !important;
+    height: 38px !important;
+    line-height: 38px !important;
+    padding: 0 8px !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    border-radius: 20px !important;
+  }
+
+
+@media (max-width: 768px) {
+  /* Major Containers Boundary Fit */
+  .dashboard-page, .dashboard-container,
+  .main-content, .dashboard-content,
+  .page-body, .tab-content,
+  .chat-container, .chat-input-area, .chat-input-wrapper,
+  .scanner-container, .upload-area, .upload-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .scanner-top-bar {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    margin-bottom: 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .member-select-wrap {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    max-width: 100% !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+  }
+  .member-select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+  .upload-area, .upload-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 24px 14px !important;
+    min-height: 180px !important;
+    margin-bottom: 20px !important;
+    text-align: center !important;
+    overflow: hidden !important;
+  }
+  .upload-actions {
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+  #browse-btn, #camera-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 44px !important;
+    box-sizing: border-box !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+  .scanner-actions {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 10px !important;
+    margin-top: 16px !important;
+    box-sizing: border-box !important;
+  }
+  .btn-analyze, #scroll-to-symptoms-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 44px !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+  .symptom-input-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .symptom-input {
+    width: 100% !important;
+    min-height: 44px !important;
+    font-size: 16px !important;
+    box-sizing: border-box !important;
+  }
+  .mic-btn {
+    width: 100% !important;
+    min-height: 44px !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Chatbot Tab - Precision Viewport Fit & Send Button Alignment */
+  .chat-container {
+    height: calc(100vh - 170px) !important;
+    min-height: 320px !important;
+    max-height: calc(100dvh - 130px) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .chat-messages {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 10px !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .chat-bubble-wrap { max-width: 85% !important; min-width: 0 !important; }
+  .chat-bubble {
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    font-size: 0.88rem !important;
+    padding: 10px 14px !important;
+  }
+  .chat-input-area, .chat-input-wrapper {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px 10px !important;
+    background: var(--bg-card) !important;
+    border-top: 1px solid var(--border-color) !important;
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  #chat-input {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: 0 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    font-size: 16px !important;
+    padding: 0 14px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    line-height: 45px !important;
+    align-self: center !important;
+  }
+  #chat-mic-btn {
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    flex: 0 0 48px !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    align-self: center !important;
+  }
+  .btn-chat-send, #chat-send-btn {
+    width: auto !important;
+    min-width: 90px !important;
+    max-width: 110px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    flex: 0 0 auto !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    padding: 0 20px !important;
+    border-radius: 24px !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    align-self: center !important;
+  }
+}
+
+
+
+
+@media (max-width: 600px) {
+  .page-body { padding: 12px 8px; }
+  .tab-title { font-size: clamp(1.25rem, 4.5vw, 1.5rem); }
+  .result-header { flex-direction: column; gap: 12px; }
+  .result-badges { flex-direction: row; flex-wrap: wrap; justify-content: space-between; width: 100%; align-items: center; }
+  .result-disease { font-size: clamp(1.15rem, 4vw, 1.35rem); word-break: break-word; }
+  .ayurveda-grid { grid-template-columns: 1fr; }
+  .ayurveda-map-grid { grid-template-columns: 1fr; }
+  .result-actions { flex-direction: column; width: 100%; gap: 10px; }
+  .btn-listen, .btn-sos-trigger { width: 100%; justify-content: center; min-height: 44px; }
+  .history-card { padding: 12px 10px !important; width: 100% !important; box-sizing: border-box !important; }
+  .history-card-header { flex-direction: column; gap: 8px; }
+  .history-card-meta { flex-direction: row; flex-wrap: wrap; justify-content: space-between; width: 100%; }
+  .history-card-actions { width: 100%; justify-content: flex-end; }
+  .doctor-recommendation { flex-direction: column; align-items: stretch; gap: 10px; }
+  .btn-visit-doctor { margin-left: 0; width: 100%; justify-content: center; min-height: 44px; }
+  .sos-helpline-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .history-type-tabs, .body-map-tabs {
+    display: flex; gap: 8px; flex-wrap: wrap; width: 100%;
+  }
+  .history-tab-btn, .body-map-tab {
+    flex: 1 1 auto; padding: 8px 14px; font-size: 0.82rem; min-height: 44px; text-align: center; justify-content: center;
+  }
+  .family-card, .sos-contact-card {
+    padding: 12px 10px !important; flex-direction: column !important; align-items: stretch !important; gap: 8px !important; width: 100% !important; box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-topbar { padding: 8px 10px !important; }
+  .topbar-right { gap: 6px !important; }
+  .topbar-badge { width: 115px !important; min-width: 115px !important; max-width: 115px !important; height: 38px !important; line-height: 38px !important; font-size: 0.68rem !important; }
+  .logout-btn { width: 80px !important; min-width: 80px !important; max-width: 80px !important; height: 38px !important; line-height: 38px !important; font-size: 0.74rem !important; }
+  .upload-area { padding: 24px 14px; min-height: 180px; }
+  .upload-icon { font-size: 2.8rem; }
+  .upload-actions { width: 100%; justify-content: center; gap: 10px; }
+  #browse-btn, #camera-btn { width: 100%; max-width: 100%; min-height: 44px; }
+  .symptom-input-row { flex-direction: column; gap: 8px; align-items: stretch; }
+  .symptom-input { width: 100%; min-height: 44px; }
+  .mic-btn { width: 100%; justify-content: center; min-height: 44px; }
+  .sos-big-btn { padding: 14px 10px; font-size: clamp(0.95rem, 3.8vw, 1.15rem); letter-spacing: 1px; min-height: 52px; }
+  .sos-contact-card, .family-card { padding: 10px 12px; flex-wrap: wrap; }
+  .settings-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .history-filters { flex-direction: column; align-items: stretch; gap: 8px; }
+  .history-actions-bar { width: 100%; flex-wrap: wrap; gap: 8px; }
+  .btn-clear-history, .btn-export-pdf { flex: 1; text-align: center; justify-content: center; min-height: 44px; }
+  .chat-container { height: calc(100vh - 160px) !important; min-height: 300px !important; }
+  .chat-bubble-wrap { max-width: 85%; }
+  #doctor-booking-modal .sos-overlay-content { width: 94vw !important; max-width: 500px !important; padding: 16px 12px !important; }
+}
+
+@media (max-width: 360px) {
+  .page-body { padding: 8px 4px; }
+  .sos-helpline-grid { grid-template-columns: 1fr; }
+  .sos-big-btn { font-size: 0.95rem; padding: 12px 8px; min-height: 48px; }
+  .topbar-badge { width: 105px !important; min-width: 105px !important; max-width: 105px !important; font-size: 0.65rem !important; }
+  .logout-btn { width: 75px !important; min-width: 75px !important; max-width: 75px !important; font-size: 0.72rem !important; }
+  .user-greeting-text { font-size: 0.68rem !important; max-width: 120px !important; }
+  .user-email-text { display: block !important; max-width: 120px !important; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .page-body { padding: 8px 12px; }
+  .dashboard-topbar { min-height: 48px; padding: 4px 12px; }
+  .chat-container { height: calc(100vh - 110px) !important; min-height: 220px !important; }
+  .upload-area { padding: 16px 12px; min-height: 140px; }
+}

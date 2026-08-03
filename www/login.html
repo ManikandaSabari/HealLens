@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="js/disclaimer.js"></script>
   <style>
     /* Credentials Modal & Styling */
     .modal-overlay {
@@ -135,6 +136,15 @@
     @keyframes toastSlideOut {
       from { transform: translateX(0); opacity: 1; }
       to { transform: translateX(60px); opacity: 0; }
+    }
+
+    @media (max-width: 480px) {
+      .modal-card {
+        padding: 20px 16px; width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 20px;
+      }
+      .toast-container {
+        top: 16px; right: 12px; left: 12px; max-width: calc(100% - 24px); width: auto;
+      }
     }
   </style>
 </head>
@@ -451,7 +461,10 @@
           return;
         }
 
-        const redirectUrl = window.location.origin + window.location.pathname + '?type=recovery';
+        const isNative = Boolean(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+        const redirectUrl = isNative 
+          ? 'com.heallens.app://login.html?type=recovery' 
+          : (window.location.origin + window.location.pathname + '?type=recovery');
 
         const { data, error } = await client.auth.resetPasswordForEmail(email, {
           redirectTo: redirectUrl
@@ -505,12 +518,14 @@
           return;
         }
 
+        const isNative = Boolean(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
         const redirectBase = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+        const targetRedirectUrl = isNative ? 'com.heallens.app://dashboard.html' : (redirectBase + 'dashboard.html');
 
         const { data, error } = await client.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: redirectBase + 'dashboard.html'
+            redirectTo: targetRedirectUrl
           }
         });
 
@@ -789,6 +804,7 @@
       const btn = (e && e.target && typeof e.target.querySelector === 'function')
         ? (e.target.querySelector('.btn-login') || e.target.querySelector('button[type="submit"]'))
         : document.querySelector('.btn-login');
+
       const originalBtnText = btn ? btn.innerHTML : 'Sign In →';
 
       if (btn) {
@@ -937,7 +953,11 @@
           );
           const modal = document.getElementById('reset-password-modal');
           if (modal) modal.classList.add('hidden');
+
           window.isPasswordRecovery = false;
+          try {
+            sessionStorage.removeItem("isPasswordRecovery");
+          } catch (e) {}
 
           setTimeout(() => {
             window.location.href = 'dashboard.html';
@@ -953,7 +973,12 @@
     }
 
     function isRecoveryLink() {
-      return window.location.search.includes('type=recovery') || window.location.hash.includes('type=recovery');
+      return (
+        window.location.search.includes('type=recovery') ||
+        window.location.hash.includes('type=recovery') ||
+        (typeof sessionStorage !== 'undefined' && sessionStorage.getItem("isPasswordRecovery") === "true") ||
+        window.isPasswordRecovery === true
+      );
     }
 
     // Phase 6.6: Session Management & Route Protection for Login Page
@@ -962,15 +987,74 @@
         const isRecovery = isRecoveryLink();
         if (isRecovery) {
           window.isPasswordRecovery = true;
+          try {
+            sessionStorage.setItem("isPasswordRecovery", "true");
+          } catch (e) {}
           openResetPasswordModal();
+          console.log("Password recovery active - stopping auto redirect logic");
+          return;
         }
 
         const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
         if (!client) return;
 
+        const isOAuthCallback = Boolean(
+          window.location.hash.includes('access_token=') ||
+          window.location.search.includes('code=') ||
+          window.location.href.includes('access_token=') ||
+          window.location.href.includes('code=')
+        );
+
         // Part 1: Check if an active session already exists
-        const { data: { session } } = await client.auth.getSession();
+        let { data: { session } } = await client.auth.getSession();
+
+        if (!session && isOAuthCallback) {
+          session = await new Promise((resolve) => {
+            let resolved = false;
+
+            const { data: { subscription } } = client.auth.onAuthStateChange((event, newSession) => {
+              if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && newSession) {
+                if (!resolved) {
+                  resolved = true;
+                  if (subscription && typeof subscription.unsubscribe === 'function') subscription.unsubscribe();
+                  resolve(newSession);
+                }
+              }
+            });
+
+            const intervalId = setInterval(async () => {
+              if (resolved) {
+                clearInterval(intervalId);
+                return;
+              }
+              const res = await client.auth.getSession();
+              if (res.data && res.data.session) {
+                resolved = true;
+                clearInterval(intervalId);
+                if (subscription && typeof subscription.unsubscribe === 'function') subscription.unsubscribe();
+                resolve(res.data.session);
+              }
+            }, 300);
+
+            setTimeout(() => {
+              if (!resolved) {
+                resolved = true;
+                clearInterval(intervalId);
+                if (subscription && typeof subscription.unsubscribe === 'function') subscription.unsubscribe();
+                resolve(null);
+              }
+            }, 3000);
+          });
+        }
+
         if (session && !window.isPasswordRecovery && !isRecovery) {
+          if (
+            window.isPasswordRecovery === true ||
+            (typeof sessionStorage !== 'undefined' && sessionStorage.getItem("isPasswordRecovery") === "true")
+          ) {
+            console.log("Password recovery active - dashboard redirect blocked");
+            return;
+          }
           const isEmailVerified = Boolean(session.user && (session.user.email_confirmed_at || session.user.confirmed_at));
           if (isEmailVerified) {
             window.location.href = 'dashboard.html';
@@ -982,8 +1066,18 @@
         client.auth.onAuthStateChange((event, session) => {
           if (event === 'PASSWORD_RECOVERY' || isRecoveryLink()) {
             window.isPasswordRecovery = true;
+            try {
+              sessionStorage.setItem("isPasswordRecovery", "true");
+            } catch (e) {}
             openResetPasswordModal();
           } else if (event === 'SIGNED_IN' && session && !window.isPasswordRecovery && !isRecoveryLink()) {
+            if (
+              window.isPasswordRecovery === true ||
+              (typeof sessionStorage !== 'undefined' && sessionStorage.getItem("isPasswordRecovery") === "true")
+            ) {
+              console.log("Password recovery active - dashboard redirect blocked");
+              return;
+            }
             const isEmailVerified = Boolean(session.user && (session.user.email_confirmed_at || session.user.confirmed_at));
             if (isEmailVerified) {
               window.location.href = 'dashboard.html';
@@ -999,9 +1093,13 @@
     document.addEventListener('DOMContentLoaded', () => {
       if (isRecoveryLink()) {
         window.isPasswordRecovery = true;
+        try {
+          sessionStorage.setItem("isPasswordRecovery", "true");
+        } catch (e) {}
         openResetPasswordModal();
+      } else {
+        checkLoginSession();
       }
-      checkLoginSession();
       const emailEl = document.getElementById('email');
       const passEl = document.getElementById('password');
       if (emailEl) emailEl.value = '';

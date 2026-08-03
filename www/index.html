@@ -20,6 +20,7 @@
 
   <link rel="stylesheet" href="style/main.css" />
   <link rel="stylesheet" href="style/landing.css" />
+  <script src="js/disclaimer.js"></script>
 </head>
 <body class="landing-page">
 
@@ -233,11 +234,55 @@
   </footer>
 
   <!-- Scripts -->
+  <!-- Supabase Client Library & Configuration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+
   <!-- TensorFlow.js for real CNN disease prediction -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/ai-engine.js?v=2"></script>
   <script>
+    async function checkLandingSession() {
+      try {
+        if (
+          window.isPasswordRecovery === true ||
+          (typeof sessionStorage !== 'undefined' && sessionStorage.getItem("isPasswordRecovery") === "true") ||
+          window.location.search.includes('type=recovery') ||
+          window.location.hash.includes('type=recovery')
+        ) {
+          console.log("Password recovery active - dashboard redirect blocked");
+          window.location.href = 'login.html?type=recovery';
+          return;
+        }
+
+        const client = window.supabaseClient || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+        if (!client) return;
+
+        const { data: { session } } = await client.auth.getSession();
+        if (session) {
+          if (
+            window.isPasswordRecovery === true ||
+            (typeof sessionStorage !== 'undefined' && sessionStorage.getItem("isPasswordRecovery") === "true")
+          ) {
+            console.log("Password recovery active - dashboard redirect blocked");
+            window.location.href = 'login.html?type=recovery';
+            return;
+          }
+          const isEmailVerified = Boolean(session.user && (session.user.email_confirmed_at || session.user.confirmed_at));
+          if (isEmailVerified) {
+            window.location.href = 'dashboard.html';
+          }
+        }
+      } catch (err) {
+        console.error('Error checking session on landing page:', err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      checkLandingSession();
+    });
+
     // Landing page language switcher
     function setLandingLang(lang) {
       window.i18n?.setLanguage(lang);
