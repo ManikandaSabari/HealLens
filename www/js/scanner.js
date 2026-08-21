@@ -182,24 +182,214 @@ class Scanner {
     if (uploadArea && !this.currentImageSrc) uploadArea.style.display = "flex";
   }
 
+  ensureImageLoaded(src) {
+    if (!src) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+          resolve(img);
+        } else {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
+  async validateImageSuitability(bodyPart, src) {
+    if (!src) {
+      return {
+        valid: false,
+        title: "No Valid Image Found",
+        message: "Please upload or capture a valid image first."
+      };
+    }
+
+    const imgElement = await this.ensureImageLoaded(src);
+    if (!imgElement) {
+      return {
+        valid: false,
+        title: "No Valid Image Found",
+        message: "Please upload or capture a valid image first."
+      };
+    }
+
+    try {
+      const width = imgElement.naturalWidth;
+      const height = imgElement.naturalHeight;
+
+      const isLungs = (bodyPart === "chest" || bodyPart === "lungs");
+      const isBone = (bodyPart === "bone");
+      const isSkin = (bodyPart === "skin");
+
+      if (width < 32 || height < 32) {
+        const title = isLungs ? "Invalid Image for Lung X-Ray Analysis"
+                    : (isBone ? "Invalid Image for Bone X-Ray Analysis" : "Invalid Image for Skin Analysis");
+        const msg = isLungs ? "The uploaded image does not appear suitable for chest X-ray analysis. Please upload a clear chest X-ray image."
+                  : (isBone ? "The uploaded image does not appear suitable for bone X-ray analysis. Please upload a clear bone X-ray image."
+                            : "The uploaded image does not appear suitable for skin analysis. Please upload a clear photograph of the skin area you want to analyze.");
+        return { valid: false, title: title, message: msg };
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(imgElement, 0, 0, width, height);
+
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+
+      const sampleCols = 16;
+      const sampleRows = 16;
+      let totalSat = 0.0;
+      let totalLum = 0.0;
+      let minLum = 255.0;
+      let maxLum = 0.0;
+      let blackPixelCount = 0;
+      let skinLikePixelCount = 0;
+      const lumValues = new Float32Array(sampleCols * sampleRows);
+      let sampleCount = 0;
+
+      const stepX = Math.max(1, Math.floor(width / sampleCols));
+      const stepY = Math.max(1, Math.floor(height / sampleRows));
+
+      for (let y = 0; y < sampleRows; y++) {
+        const pxY = Math.min(height - 1, y * stepY);
+        for (let x = 0; x < sampleCols; x++) {
+          const pxX = Math.min(width - 1, x * stepX);
+          const index = (pxY * width + pxX) * 4;
+
+          const r = data[index];
+          const g = data[index + 1];
+          const b = data[index + 2];
+
+          const maxChannel = Math.max(r, g, b);
+          const minChannel = Math.min(r, g, b);
+          const chroma = maxChannel - minChannel;
+          const sat = maxChannel === 0 ? 0.0 : chroma / maxChannel;
+
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const cb = 128.0 - 0.168736 * r - 0.331264 * g + 0.5 * b;
+          const cr = 128.0 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+
+          if (lum < 10.0) blackPixelCount++;
+          if (lum >= 20.0 && cb >= 75.0 && cb <= 135.0 && cr >= 130.0 && cr <= 175.0) {
+            skinLikePixelCount++;
+          }
+
+          totalSat += sat;
+          totalLum += lum;
+          if (lum < minLum) minLum = lum;
+          if (lum > maxLum) maxLum = lum;
+          lumValues[sampleCount] = lum;
+          sampleCount++;
+        }
+      }
+
+      const avgSat = totalSat / sampleCount;
+      const avgLum = totalLum / sampleCount;
+      const blackPixelRatio = blackPixelCount / sampleCount;
+      const skinLikePixelRatio = skinLikePixelCount / sampleCount;
+
+      let lumVarianceSum = 0.0;
+      for (let i = 0; i < sampleCount; i++) {
+        const diff = lumValues[i] - avgLum;
+        lumVarianceSum += diff * diff;
+      }
+      const lumStdDev = Math.sqrt(lumVarianceSum / sampleCount);
+
+      // Check 1: Blank or near-uniform image detection
+      if (lumStdDev < 6.0 || (maxLum - minLum) < 12.0) {
+        const title = isLungs ? "Invalid Image for Lung X-Ray Analysis"
+                    : (isBone ? "Invalid Image for Bone X-Ray Analysis" : "Invalid Image for Skin Analysis");
+        const msg = isLungs ? "The uploaded image does not appear suitable for chest X-ray analysis. Please upload a clear chest X-ray image."
+                  : (isBone ? "The uploaded image does not appear suitable for bone X-ray analysis. Please upload a clear bone X-ray image."
+                            : "The uploaded image does not appear suitable for skin analysis. Please upload a clear photograph of the skin area you want to analyze.");
+        return { valid: false, title: title, message: msg };
+      }
+
+      // Check 2: Overwhelmingly Black / Text-on-Black Screen Protection
+      if (blackPixelRatio > 0.85 && avgLum < 25.0) {
+        const title = isLungs ? "Invalid Image for Lung X-Ray Analysis"
+                    : (isBone ? "Invalid Image for Bone X-Ray Analysis" : "Invalid Image for Skin Analysis");
+        const msg = isLungs ? "The uploaded image does not appear suitable for chest X-ray analysis. Please upload a clear chest X-ray image."
+                  : (isBone ? "The uploaded image does not appear suitable for bone X-ray analysis. Please upload a clear bone X-ray image."
+                            : "The uploaded image does not appear suitable for skin analysis. Please upload a clear photograph of the skin area you want to analyze.");
+        return { valid: false, title: title, message: msg };
+      }
+
+      if (isLungs) {
+        if (avgSat > 0.32 || avgLum < 20.0) {
+          return {
+            valid: false,
+            title: "Invalid Image for Lung X-Ray Analysis",
+            message: "The uploaded image does not appear suitable for chest X-ray analysis. Please upload a clear chest X-ray image."
+          };
+        }
+      } else if (isBone) {
+        if (avgSat > 0.32 || avgLum < 20.0) {
+          return {
+            valid: false,
+            title: "Invalid Image for Bone X-Ray Analysis",
+            message: "The uploaded image does not appear suitable for bone X-ray analysis. Please upload a clear bone X-ray image."
+          };
+        }
+      } else if (isSkin) {
+        if (avgLum < 15.0 || avgLum > 245.0 || skinLikePixelRatio < 0.12) {
+          return {
+            valid: false,
+            title: "Invalid Image for Skin Analysis",
+            message: "The uploaded image does not appear suitable for skin analysis. Please upload a clear photograph of the skin area you want to analyze."
+          };
+        }
+      }
+    } catch (e) {
+      console.warn("[Scanner Validation] Canvas analysis warning:", e);
+    }
+
+    return { valid: true };
+  }
+
+  showValidationWarningModal(title, message) {
+    const warningModal = document.getElementById("body-part-warning-modal");
+    if (warningModal) {
+      const modalTitle = warningModal.querySelector("h3");
+      const modalDesc = warningModal.querySelector("p");
+      if (modalTitle) modalTitle.innerText = title;
+      if (modalDesc) modalDesc.innerText = message;
+      warningModal.style.display = "flex";
+    } else {
+      alert(`${title}\n\n${message}`);
+    }
+  }
+
   async startAnalysis() {
     // 1. Validate Body Part
     const bodyPartSelect = document.getElementById("body-part-select");
     const bodyPart = bodyPartSelect ? bodyPartSelect.value : "none";
 
     if (bodyPart === "none" || !bodyPart) {
-      const warningModal = document.getElementById("body-part-warning-modal");
-      if (warningModal) {
-        warningModal.style.display = "flex";
-      } else {
-        alert("Please select a Body Part (Lungs, Bone, or Skin) before analyzing.");
-      }
+      this.showValidationWarningModal(
+        "Medical Selection Required",
+        "Clinical Requirement: Please select the Body Part (Lungs, Bone, or Skin) before analyzing the image to ensure diagnostic accuracy."
+      );
       return;
     }
 
     // 2. Validate Image
     if (!this.currentImageSrc) {
       alert("Please upload or capture an image first.");
+      return;
+    }
+
+    // 2B. Image Suitability Validation Check (Fresh Current-Image Async Synchronization)
+    const validationResult = await this.validateImageSuitability(bodyPart, this.currentImageSrc);
+    if (!validationResult.valid) {
+      this.showValidationWarningModal(validationResult.title, validationResult.message);
       return;
     }
 
@@ -314,13 +504,11 @@ class Scanner {
     const bodyPartEl = document.getElementById("res-body-part");
     const confidenceEl = document.getElementById("res-confidence");
     const descriptionEl = document.getElementById("res-description");
-    const doctorEl = document.getElementById("res-doctor");
 
     if (diseaseNameEl) diseaseNameEl.innerText = result.diseaseName;
     if (bodyPartEl) bodyPartEl.innerText = result.bodyPartLabel;
     if (confidenceEl) confidenceEl.innerText = Math.round(result.confidence) + "%";
     if (descriptionEl) descriptionEl.innerText = result.description;
-    if (doctorEl) doctorEl.innerText = result.doctorType;
 
     // Severity Badge
     const sevBadge = document.getElementById("res-severity-badge");
@@ -341,6 +529,16 @@ class Scanner {
 
     // Remedies Rendering
     this.renderRemedies(result);
+
+    // Dynamic Specialist Discovery Widget
+    if (window.appointmentManager && typeof window.appointmentManager.renderSpecialistWidget === "function") {
+      const docType = result.doctorType || "General Physician";
+      window.appointmentManager.renderSpecialistWidget(
+        "scanner-specialist-container", 
+        docType, 
+        "Based on evaluated image indicators, consulting a specialist is recommended for formal clinical evaluation. This recommendation is educational and does not replace a medical diagnosis."
+      );
+    }
 
     // Urgent Badge
     const urgentBadge = document.getElementById("res-urgent-badge");
@@ -374,6 +572,22 @@ class Scanner {
   }
 
 
+  sanitizeWellnessText(text) {
+    if (!text || typeof text !== "string") return "";
+    let clean = text;
+    clean = clean.replace(/\b(cures|curing)\b/gi, "traditionally used for");
+    clean = clean.replace(/\b(treats|treating)\b/gi, "traditionally referenced for");
+    clean = clean.replace(/\bwill\s+eliminate\b/gi, "commonly used in traditional wellness practices for");
+    clean = clean.replace(/\bclears?\s+the\s+disease\b/gi, "commonly associated with traditional balance");
+    clean = clean.replace(/\breverses?\b/gi, "traditionally associated with");
+    clean = clean.replace(/\bguarantees?\s+recovery\b/gi, "used in traditional wellness routines");
+    clean = clean.replace(/\bheals?\s+the\s+infection\b/gi, "traditionally referenced for recovery support");
+    clean = clean.replace(/\boptimizes?\s+organ\s+function\b/gi, "supports general organ wellness");
+    clean = clean.replace(/\bdetoxifies?\s+the\s+disease\b/gi, "traditionally used for wellness balance");
+    clean = clean.replace(/\breplaces?\s+medical\s+treatment\b/gi, "complements general lifestyle wellness");
+    return clean;
+  }
+
   renderRemedies(result) {
     const naturalContainer = document.getElementById("res-remedies-natural");
     const ayurvedicContainer = document.getElementById("res-remedies-ayurvedic");
@@ -387,9 +601,9 @@ class Scanner {
         naturalContainer.innerHTML = result.remedies.map(r => `
           <div class="remedy-item" style="margin-bottom: 15px;">
             <div style="font-weight: 700; color: #4caf50;">${r.name}</div>
-            <div style="font-size: 0.85rem; color: var(--text-secondary); margin: 2px 0;"><strong>${labelIngredients}:</strong> ${r.ingredients}</div>
-            <div style="font-size: 0.85rem; color: var(--text-secondary); margin: 2px 0;"><strong>${labelMethod}:</strong> ${r.method}</div>
-            <div style="font-size: 0.85rem; color: var(--text-secondary);"><strong>${labelUse}:</strong> ${r.use || "General healing support."}</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary); margin: 2px 0;"><strong>${labelIngredients}:</strong> ${this.sanitizeWellnessText(r.ingredients)}</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary); margin: 2px 0;"><strong>${labelMethod}:</strong> ${this.sanitizeWellnessText(r.method)}</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);"><strong>${labelUse}:</strong> ${this.sanitizeWellnessText(r.use || "General lifestyle support.")}</div>
           </div>
         `).join("");
       } else {
@@ -398,16 +612,45 @@ class Scanner {
     }
 
     if (ayurvedicContainer) {
-      if (result.ayurveda && result.ayurveda.length > 0) {
-        ayurvedicContainer.innerHTML = result.ayurveda.map(a => `
+      const disclaimerHtml = `
+        <div style="background: rgba(255, 152, 0, 0.08); border: 1px solid rgba(255, 152, 0, 0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5;">
+          <strong>Disclaimer:</strong> This section provides general traditional wellness information for educational purposes only. It is not a diagnosis or treatment recommendation. Herbal products and supplements may interact with medicines or may not be appropriate for everyone. Consult a qualified healthcare professional before using them, especially when symptoms are persistent or when the image analysis result indicates an abnormal finding.
+        </div>
+      `;
+
+      const isAbnormal = result.severityRaw?.toLowerCase() === "critical" ||
+                         result.severityRaw?.toLowerCase() === "high" ||
+                         result.severityRaw?.toLowerCase() === "moderate" ||
+                         (result.condition && !result.condition.toLowerCase().includes("normal") && !result.condition.toLowerCase().includes("healthy"));
+
+      const highRiskReminderHtml = isAbnormal ? `
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.82rem; color: var(--color-danger); line-height: 1.5;">
+          <strong>Important:</strong> Traditional wellness information should not replace professional medical evaluation. Please consult a qualified healthcare professional for persistent symptoms, concerning findings, or worsening condition.
+        </div>
+      ` : "";
+
+      const isLowConfidence = result.isLowConfidence ||
+                              result.condition?.toLowerCase().includes("inconclusive") ||
+                              result.condition?.toLowerCase().includes("low confidence");
+
+      if (isLowConfidence) {
+        ayurvedicContainer.innerHTML = disclaimerHtml + `
+          <div style="padding: 12px; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;">
+            The scan result is inconclusive. Consult a qualified healthcare professional for persistent symptoms or concerning findings before using any traditional wellness routines.
+          </div>
+        `;
+      } else if (result.ayurveda && result.ayurveda.length > 0) {
+        const itemsHtml = result.ayurveda.map(a => `
           <div class="ayurveda-item" style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,152,0,0.1);">
             <div style="font-weight: 700; color: #ff9800;">${a.name} <span style="font-weight: 400; opacity: 0.8; font-size: 0.9em;">(${a.sanskrit})</span></div>
             <div style="font-size: 0.85rem; color: var(--text-secondary);"><strong>${window.i18n?.t("dosage") || "Dosage"}:</strong> ${a.dosage}</div>
-            <div style="font-size: 0.85rem; color: var(--text-secondary);"><strong>${labelUse}:</strong> ${a.use}</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);"><strong>${labelUse}:</strong> ${this.sanitizeWellnessText(a.use)}</div>
           </div>
         `).join("");
+
+        ayurvedicContainer.innerHTML = disclaimerHtml + highRiskReminderHtml + itemsHtml;
       } else {
-        ayurvedicContainer.innerHTML = `<p>${window.i18n?.t("noAyurveda") || "Consult an Ayurvedic specialist for specific guidance."}</p>`;
+        ayurvedicContainer.innerHTML = disclaimerHtml + highRiskReminderHtml + `<p style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">Consult a qualified Ayurvedic specialist for specific guidance.</p>`;
       }
     }
   }

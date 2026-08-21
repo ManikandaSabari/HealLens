@@ -76,6 +76,8 @@ dependencies {
     implementation(libs.supabase.gotrue)
     implementation(libs.supabase.postgrest)
     implementation(libs.ktor.client.android)
+    // Google Play Services ML Kit Text Recognition for Document OCR
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

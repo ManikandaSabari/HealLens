@@ -34,3 +34,8 @@ qa_testing/selenium-automation-framework/test-output/
 qa_testing/selenium-automation-framework/screenshots/
 ~$*.xlsx
 
+
+# HealLens Native Android Build Artifacts
+HealLens-Android/.gradle/
+HealLens-Android/build/
+HealLens-Android/app/build/

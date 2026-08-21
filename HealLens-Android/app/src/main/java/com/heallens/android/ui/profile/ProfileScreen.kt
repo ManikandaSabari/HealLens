@@ -30,12 +30,14 @@ import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import com.heallens.android.ui.components.PasswordStrengthMeter
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,6 +78,10 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(DarkBackground)
     ) {
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            com.heallens.android.data.repository.AppointmentRepository.fetchRemoteAppointments()
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -519,6 +525,181 @@ fun ProfileScreen(
                     onClick = { viewModel.changePassword() },
                     isLoading = uiState.isChangingPassword
                 )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // My Appointments Card (Matching PDD AppointmentManager.renderMyAppointments)
+            val appointmentsList by com.heallens.android.data.repository.AppointmentRepository.appointments.collectAsState()
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glassmorphicCard(cornerRadius = 20.dp)
+                    .padding(20.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("📅 ", fontSize = 20.sp)
+                    Text(
+                        text = "My Appointments",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                    )
+                }
+
+                Text(
+                    text = "Manage scheduled consultations, provider visits, and specialist bookings",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = TextMuted,
+                        fontSize = 12.sp
+                    ),
+                    modifier = Modifier.padding(top = 2.dp, bottom = 16.dp)
+                )
+
+                if (appointmentsList.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0x05FFFFFF), RoundedCornerShape(10.dp))
+                            .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(10.dp))
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("📅", fontSize = 28.sp)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("No appointments logged yet", fontWeight = FontWeight.SemiBold, color = TextSecondary, fontSize = 13.sp)
+                            Text("Use \"Consult a Specialist\" in Scanner or Report Analyzer to find and schedule provider visits.", fontSize = 11.sp, color = TextMuted)
+                        }
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        appointmentsList.forEach { appt ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0x05FFFFFF), RoundedCornerShape(10.dp))
+                                    .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(10.dp))
+                                    .padding(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(appt.providerName, fontWeight = FontWeight.Bold, color = TextPrimary, fontSize = 14.sp)
+                                        Text("${appt.specialization} — ${appt.facilityName}", fontSize = 11.sp, color = CyanPrimary, fontWeight = FontWeight.SemiBold)
+                                    }
+
+                                    Surface(
+                                        color = if (appt.status == "Confirmed") Color(0x2610B981) else Color(0x26FF9800),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Text(
+                                            text = appt.status,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (appt.status == "Confirmed") Color(0xFF10B981) else Color(0xFFFF9800),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    Text("🗓️ Date: ${appt.appointmentDate}", fontSize = 11.sp, color = TextSecondary)
+                                    Text("👤 Patient: ${appt.patientName}", fontSize = 11.sp, color = TextSecondary)
+                                }
+
+                                if (appt.address.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("📍 ${appt.address}", fontSize = 11.sp, color = TextMuted)
+                                }
+
+                                if (appt.bookingReference.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("Ref ID: ${appt.bookingReference}", fontSize = 10.sp, color = TextMuted)
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (appt.phone.isNotBlank()) {
+                                        androidx.compose.material3.OutlinedButton(
+                                            onClick = {
+                                                val intent = android.content.Intent(android.content.Intent.ACTION_DIAL, android.net.Uri.parse("tel:${appt.phone}"))
+                                                context.startActivity(intent)
+                                            },
+                                            modifier = Modifier.height(30.dp),
+                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x4D10B981))
+                                        ) {
+                                            Text("📞 Call", fontSize = 10.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+
+                                    if (appt.website.isNotBlank()) {
+                                        androidx.compose.material3.OutlinedButton(
+                                            onClick = {
+                                                var url = appt.website
+                                                if (!url.startsWith("http://") && !url.startsWith("https://")) url = "https://$url"
+                                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                                context.startActivity(intent)
+                                            },
+                                            modifier = Modifier.height(30.dp),
+                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x4D00D4FF))
+                                        ) {
+                                            Text("🌐 Website", fontSize = 10.sp, color = CyanPrimary, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+
+                                    androidx.compose.material3.OutlinedButton(
+                                        onClick = {
+                                            val mapsUrl = if (appt.latitude != 0.0 && appt.longitude != 0.0)
+                                                "https://www.google.com/maps/dir/?api=1&destination=${appt.latitude},${appt.longitude}"
+                                            else
+                                                "https://www.google.com/maps/search/?api=1&query=${android.net.Uri.encode(appt.address.ifBlank { appt.providerName })}"
+                                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(mapsUrl))
+                                            context.startActivity(intent)
+                                        },
+                                        modifier = Modifier.height(30.dp),
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x4DA78BFA))
+                                    ) {
+                                        Text("🧭 Directions", fontSize = 10.sp, color = Color(0xFFA78BFA), fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Spacer(modifier = Modifier.weight(1f))
+
+                                    androidx.compose.material3.OutlinedButton(
+                                        onClick = {
+                                            scope.launch {
+                                                val idToDelete = appt.id ?: appt.bookingReference
+                                                com.heallens.android.data.repository.AppointmentRepository.deleteAppointment(idToDelete)
+                                            }
+                                        },
+                                        modifier = Modifier.height(30.dp),
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x4DEF4444))
+                                    ) {
+                                        Text("🗑️ Remove", fontSize = 10.sp, color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))

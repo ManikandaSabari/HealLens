@@ -581,6 +581,9 @@ fun ScannerScreen(
 
     var showBodyPartWarningModal by remember { mutableStateOf(false) }
     var showClinicalContextModal by remember { mutableStateOf(false) }
+    var showImageValidationWarningModal by remember { mutableStateOf(false) }
+    var validationWarningTitle by remember { mutableStateOf("") }
+    var validationWarningMessage by remember { mutableStateOf("") }
 
     // Appointment Modal State
     var showAppointmentModal by remember { mutableStateOf(false) }
@@ -680,10 +683,160 @@ fun ScannerScreen(
         ClinicalHistoryRepository.addRecord(record)
     }
 
+    fun validateImageSuitability(bodyPart: String, bitmap: Bitmap?): Pair<Boolean, Pair<String, String>?> {
+        if (bitmap == null) {
+            return Pair(false, Pair("No Image Uploaded", "Please upload or capture an image before starting the analysis."))
+        }
+
+        val width = bitmap.width
+        val height = bitmap.height
+        val isLungs = bodyPart.contains("Lungs", ignoreCase = true) || bodyPart.contains("chest", ignoreCase = true)
+        val isBone = bodyPart.contains("Bone", ignoreCase = true) || bodyPart.contains("bone", ignoreCase = true)
+        val isSkin = bodyPart.contains("Skin", ignoreCase = true) || bodyPart.contains("skin", ignoreCase = true) || bodyPart.contains("dermatology", ignoreCase = true)
+
+        if (width < 32 || height < 32) {
+            val title = when {
+                isLungs -> "Invalid Image for Lung X-Ray Analysis"
+                isBone -> "Invalid Image for Bone X-Ray Analysis"
+                else -> "Invalid Image for Skin Analysis"
+            }
+            val msg = when {
+                isLungs -> "The uploaded image does not appear suitable for chest X-ray analysis. Please upload a clear chest X-ray image."
+                isBone -> "The uploaded image does not appear suitable for bone X-ray analysis. Please upload a clear bone X-ray image."
+                else -> "The uploaded image does not appear suitable for skin analysis. Please upload a clear photograph of the skin area you want to analyze."
+            }
+            return Pair(false, Pair(title, msg))
+        }
+
+        val sampleCols = 16
+        val sampleRows = 16
+        var totalSat = 0.0
+        var totalLum = 0.0
+        var minLum = 255.0
+        var maxLum = 0.0
+        var blackPixelCount = 0
+        var skinLikePixelCount = 0
+        val lumValues = DoubleArray(sampleCols * sampleRows)
+        var sampleCount = 0
+
+        val stepX = (width / sampleCols).coerceAtLeast(1)
+        val stepY = (height / sampleRows).coerceAtLeast(1)
+
+        for (y in 0 until sampleRows) {
+            val pxY = (y * stepY).coerceAtMost(height - 1)
+            for (x in 0 until sampleCols) {
+                val pxX = (x * stepX).coerceAtMost(width - 1)
+                val pixel = bitmap.getPixel(pxX, pxY)
+                val r = (pixel shr 16) and 0xFF
+                val g = (pixel shr 8) and 0xFF
+                val b = pixel and 0xFF
+
+                val maxChannel = maxOf(r, maxOf(g, b))
+                val minChannel = minOf(r, minOf(g, b))
+                val chroma = maxChannel - minChannel
+                val sat = if (maxChannel == 0) 0.0 else chroma.toDouble() / maxChannel.toDouble()
+
+                val lum = 0.299 * r + 0.587 * g + 0.114 * b
+                val cb = 128.0 - 0.168736 * r - 0.331264 * g + 0.5 * b
+                val cr = 128.0 + 0.5 * r - 0.418688 * g - 0.081312 * b
+
+                if (lum < 10.0) blackPixelCount++
+                if (lum >= 20.0 && cb in 75.0..135.0 && cr in 130.0..175.0) {
+                    skinLikePixelCount++
+                }
+
+                totalSat += sat
+                totalLum += lum
+                if (lum < minLum) minLum = lum
+                if (lum > maxLum) maxLum = lum
+                lumValues[sampleCount] = lum
+                sampleCount++
+            }
+        }
+
+        val avgSat = totalSat / sampleCount
+        val avgLum = totalLum / sampleCount
+        val blackPixelRatio = blackPixelCount.toDouble() / sampleCount
+        val skinLikePixelRatio = skinLikePixelCount.toDouble() / sampleCount
+
+        var lumVarianceSum = 0.0
+        for (i in 0 until sampleCount) {
+            val diff = lumValues[i] - avgLum
+            lumVarianceSum += diff * diff
+        }
+        val lumStdDev = kotlin.math.sqrt(lumVarianceSum / sampleCount)
+
+        // Check 1: Blank or near-uniform image detection
+        if (lumStdDev < 6.0 || (maxLum - minLum) < 12.0) {
+            val title = when {
+                isLungs -> "Invalid Image for Lung X-Ray Analysis"
+                isBone -> "Invalid Image for Bone X-Ray Analysis"
+                else -> "Invalid Image for Skin Analysis"
+            }
+            val msg = when {
+                isLungs -> "The uploaded image does not appear suitable for chest X-ray analysis. Please upload a clear chest X-ray image."
+                isBone -> "The uploaded image does not appear suitable for bone X-ray analysis. Please upload a clear bone X-ray image."
+                else -> "The uploaded image does not appear suitable for skin analysis. Please upload a clear photograph of the skin area you want to analyze."
+            }
+            return Pair(false, Pair(title, msg))
+        }
+
+        // Check 2: Overwhelmingly Black / Text-on-Black Screen Protection
+        if (blackPixelRatio > 0.85 && avgLum < 25.0) {
+            val title = when {
+                isLungs -> "Invalid Image for Lung X-Ray Analysis"
+                isBone -> "Invalid Image for Bone X-Ray Analysis"
+                else -> "Invalid Image for Skin Analysis"
+            }
+            val msg = when {
+                isLungs -> "The uploaded image does not appear suitable for chest X-ray analysis. Please upload a clear chest X-ray image."
+                isBone -> "The uploaded image does not appear suitable for bone X-ray analysis. Please upload a clear bone X-ray image."
+                else -> "The uploaded image does not appear suitable for skin analysis. Please upload a clear photograph of the skin area you want to analyze."
+            }
+            return Pair(false, Pair(title, msg))
+        }
+
+        if (isLungs) {
+            if (avgSat > 0.32 || avgLum < 20.0) {
+                return Pair(false, Pair(
+                    "Invalid Image for Lung X-Ray Analysis",
+                    "The uploaded image does not appear suitable for chest X-ray analysis. Please upload a clear chest X-ray image."
+                ))
+            }
+        } else if (isBone) {
+            if (avgSat > 0.32 || avgLum < 20.0) {
+                return Pair(false, Pair(
+                    "Invalid Image for Bone X-Ray Analysis",
+                    "The uploaded image does not appear suitable for bone X-ray analysis. Please upload a clear bone X-ray image."
+                ))
+            }
+        } else if (isSkin) {
+            if (avgLum < 15.0 || avgLum > 245.0 || skinLikePixelRatio < 0.12) {
+                return Pair(false, Pair(
+                    "Invalid Image for Skin Analysis",
+                    "The uploaded image does not appear suitable for skin analysis. Please upload a clear photograph of the skin area you want to analyze."
+                ))
+            }
+        }
+
+        return Pair(true, null)
+    }
+
     fun initiateImageScan() {
         // Validation 1: Check if Body Part is unselected/none
         if (selectedBodyPart.isNullOrEmpty() || selectedBodyPart == "Select Body Part" || selectedBodyPart == "none") {
             showBodyPartWarningModal = true
+            return
+        }
+
+        // Validation 2: Check image suitability BEFORE model execution
+        val (isValidImage, warningDetails) = validateImageSuitability(selectedBodyPart ?: "", capturedBitmap)
+        if (!isValidImage) {
+            if (warningDetails != null) {
+                validationWarningTitle = warningDetails.first
+                validationWarningMessage = warningDetails.second
+                showImageValidationWarningModal = true
+            }
             return
         }
 
@@ -1452,6 +1605,23 @@ fun ScannerScreen(
 
                             Spacer(modifier = Modifier.height(10.dp))
 
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFFF9800).copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                    .border(1.dp, Color(0xFFFF9800).copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Text(
+                                    text = "⚠️ Note: Traditional wellness practices are for supportive care and general educational purposes. They do not replace professional medical diagnosis or treatment.",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFFFB74D),
+                                    lineHeight = 15.sp
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
                             result.ayurvedicSuggestions.forEachIndexed { idx, ayur ->
                                 if (idx > 0) Spacer(modifier = Modifier.height(10.dp))
                                 Column {
@@ -1487,54 +1657,6 @@ fun ScannerScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // 3. Recommended Specialist Box (Matching PDD res-doctor-box)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFF00D4FF).copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-                            .border(1.dp, Color(0xFF00D4FF).copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                            .padding(16.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = "Recommended Specialist",
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = result.specialist,
-                                        color = CyanPrimary,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
-                                    )
-
-                                    if (result.urgentVisitRequired) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .background(Color(0xFFEF4444).copy(alpha = 0.15f), RoundedCornerShape(50))
-                                                .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f), RoundedCornerShape(50))
-                                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                                        ) {
-                                            Text("Urgent Visit Required", color = Color(0xFFEF4444), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     Spacer(modifier = Modifier.height(18.dp))
 
                     // 4. Action Buttons (Read Aloud Toggle & Book Appointment)
@@ -1565,16 +1687,16 @@ fun ScannerScreen(
                             )
                         }
 
-                        // Book Appointment Button
-                        GradientButton(
-                            text = "📅 Book Appointment →",
-                            onClick = {
-                                bookingDoctor = null
-                                bookingConfirmed = false
-                                confirmedAppointmentId = ""
-                                showAppointmentModal = true
-                            },
-                            modifier = Modifier.weight(1.2f)
+                        val recommendedSpecialty = when (result.diseaseName.lowercase()) {
+                            "pneumonia", "tuberculosis", "covid-19" -> "Pulmonologist"
+                            "bone fracture" -> "Orthopedic Surgeon"
+                            "mild arthritis" -> "Rheumatologist"
+                            "skin infection", "psoriasis/rash" -> "Dermatologist"
+                            else -> "General Physician"
+                        }
+                        com.heallens.android.ui.components.SpecialistDiscoveryWidget(
+                            specialty = recommendedSpecialty,
+                            contextualNote = "Based on evaluated image indicators, consulting a $recommendedSpecialty is recommended for formal clinical evaluation. This recommendation is educational and does not replace a medical diagnosis."
                         )
                     }
                 }
@@ -1605,6 +1727,36 @@ fun ScannerScreen(
                     onClick = {
                         showBodyPartWarningModal = false
                         isBodyMenuExpanded = true
+                    }
+                )
+            },
+            containerColor = DarkBackground,
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
+    // Modal 1B: Image Suitability Validation Warning Modal
+    if (showImageValidationWarningModal) {
+        AlertDialog(
+            onDismissRequest = { showImageValidationWarningModal = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("⚠️ ", fontSize = 24.sp)
+                    Text(validationWarningTitle, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                }
+            },
+            text = {
+                Text(
+                    text = validationWarningMessage,
+                    color = TextSecondary,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                GradientButton(
+                    text = "OK",
+                    onClick = {
+                        showImageValidationWarningModal = false
                     }
                 )
             },
@@ -1677,108 +1829,4 @@ fun ScannerScreen(
         )
     }
 
-    // Modal 3: Doctor Booking Modal (Matching PDD Doctor Appointment Manager)
-    if (showAppointmentModal) {
-        val currentSpecialist = diagnosisResult?.specialist ?: "Pulmonologist"
-        val doctorList = doctorsDatabase[currentSpecialist] ?: doctorsDatabase["General Physician"]!!
-
-        AlertDialog(
-            onDismissRequest = { showAppointmentModal = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("📅 ", fontSize = 24.sp)
-                    Column {
-                        Text("Book Doctor Appointment", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        Text("Recommended Specialty: $currentSpecialist", color = CyanPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            },
-            text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    if (bookingConfirmed) {
-                        // Success View
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF10B981).copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                                .border(1.dp, Color(0xFF10B981).copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                                .padding(16.dp)
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("✅ Appointment Confirmed!", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text("Appointment ID: $confirmedAppointmentId", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("Doctor: ${bookingDoctor?.name}", color = TextSecondary, fontSize = 12.sp)
-                                Text("Hospital: ${bookingDoctor?.hospital}", color = TextSecondary, fontSize = 12.sp)
-                                Text("Slot: ${bookingDoctor?.slot}", color = TextSecondary, fontSize = 12.sp)
-                                Text("Patient: $patientRelation", color = TextSecondary, fontSize = 12.sp)
-                            }
-                        }
-                    } else {
-                        // Booking Selection View
-                        Text("Available $currentSpecialist Doctors:", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        doctorList.forEach { doc ->
-                            val isSelected = bookingDoctor == doc
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) CyanPrimary.copy(alpha = 0.15f) else SurfaceGlass)
-                                    .border(1.dp, if (isSelected) CyanPrimary else SurfaceGlassBorder, RoundedCornerShape(12.dp))
-                                    .clickable { bookingDoctor = doc }
-                                    .padding(12.dp)
-                            ) {
-                                Column {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(doc.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                        Text(doc.rating, color = Color(0xFFFFB800), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                    Text("${doc.exp} • ${doc.hospital}", color = TextMuted, fontSize = 11.sp)
-                                    Text("Slot: ${doc.slot}", color = CyanPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                if (bookingConfirmed) {
-                    GradientButton(
-                        text = "Done",
-                        onClick = { showAppointmentModal = false }
-                    )
-                } else {
-                    GradientButton(
-                        text = "Confirm Booking",
-                        onClick = {
-                            if (bookingDoctor == null) {
-                                Toast.makeText(context, "Please select a doctor to confirm booking.", Toast.LENGTH_SHORT).show()
-                            } else {
-                                confirmedAppointmentId = "HL-${(10000..99999).random()}"
-                                bookingConfirmed = true
-                            }
-                        }
-                    )
-                }
-            },
-            dismissButton = {
-                if (!bookingConfirmed) {
-                    OutlinedButton(
-                        onClick = { showAppointmentModal = false }
-                    ) {
-                        Text("Cancel", color = TextMuted)
-                    }
-                }
-            },
-            containerColor = DarkBackground,
-            shape = RoundedCornerShape(20.dp)
-        )
-    }
 }

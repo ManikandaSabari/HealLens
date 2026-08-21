@@ -435,6 +435,16 @@
         emailEl.textContent = user.email || "";
       }
 
+      const profileEmailEl = document.getElementById("profile-user-email");
+      if (profileEmailEl) {
+        profileEmailEl.textContent = user.email || "Email not available";
+      }
+
+      const profileNameEl = document.getElementById("profile-user-name");
+      if (profileNameEl) {
+        profileNameEl.textContent = user.fullName || "User Profile";
+      }
+
       const providerBadge = document.getElementById("user-provider-badge");
       if (providerBadge) {
         const rawProvider = (user.provider || "email").toLowerCase();
@@ -661,6 +671,10 @@
         <button class="nav-btn" data-tab="sos">
           <span class="nav-icon">🚨</span>
           <span class="nav-label" data-i18n="navSOS">Emergency SOS</span>
+        </button>
+        <button class="nav-btn" data-tab="profile">
+          <span class="nav-icon">👤</span>
+          <span class="nav-label" data-i18n="navProfile">User Profile</span>
         </button>
       </div>
 
@@ -948,7 +962,7 @@
                   style="background: rgba(255, 152, 0, 0.05); border: 1px solid rgba(255, 152, 0, 0.2); border-radius: 12px; padding: 20px;">
                   <h4
                     style="color: #ff9800; font-family: var(--font-heading); font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                    <span>🌿</span> Ayurvedic Suggestion
+                    <span>🌿</span> Traditional / Ayurvedic Wellness Information
                   </h4>
                   <div id="res-remedies-ayurvedic">
                     <!-- Injected via JS -->
@@ -956,15 +970,8 @@
                 </div>
               </div>
 
-              <div class="result-doctor" id="res-doctor-box" style="margin-top: 20px;">
-                <h4 style="margin-bottom: 8px;">Recommended Specialist</h4>
-                <div class="doctor-recommendation">
-                  <div class="doctor-type" id="res-doctor">Pulmonologist</div>
-                  <div class="doctor-urgent-badge" id="res-urgent-badge" style="display:none;">Urgent Visit Required
-                  </div>
-                  <a href="#" class="btn btn-visit-doctor" data-i18n="bookAppointment">Book Appointment →</a>
-                </div>
-              </div>
+              <!-- Consult a Specialist Container -->
+              <div id="scanner-specialist-container" style="display:none;"></div>
 
               <div class="result-actions">
                 <button class="btn btn-listen" id="btn-read-aloud">
@@ -1125,17 +1132,33 @@
               </div>
             </div>
 
+            <!-- Natural Lifestyle & Wellness Guidance Box -->
+            <div class="result-box" id="lab-lifestyle-box"
+              style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+              <h4
+                style="color: #10b981; font-family: var(--font-heading); font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <span>🌱</span> <span data-i18n="lifestyleTitle">Natural Lifestyle & Wellness Guidance</span>
+              </h4>
+              <div id="lab-lifestyle-output"
+                style="font-size: 0.92rem; line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
+                <!-- Dynamic lifestyle recommendations -->
+              </div>
+            </div>
+
             <!-- Ayurvedic Suggestions Box -->
             <div class="result-box"
               style="background: rgba(255, 158, 11, 0.05); border: 1px solid rgba(255, 158, 11, 0.2); border-radius: 12px; padding: 20px;">
               <h4
                 style="color: var(--color-warning); font-family: var(--font-heading); font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                <span>🌿</span> <span data-i18n="ayurRemediesTitle">Ayurvedic Balancing Suggestions</span>
+                <span>🌿</span> <span data-i18n="ayurRemediesTitle">Traditional / Ayurvedic Wellness Information</span>
               </h4>
               <div class="ayurveda-grid" id="lab-ayurveda-output">
                 <!-- Suggestion cards -->
               </div>
             </div>
+
+            <!-- Consult a Specialist Container -->
+            <div id="lab-specialist-container" style="display:none;"></div>
 
           </div>
         </section>
@@ -1254,6 +1277,74 @@
             <!-- Contacts List -->
             <div id="sos-contacts-list">
               <!-- Injected via JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- PROFILE TAB -->
+        <section id="tab-profile" class="tab-content" style="display:none;">
+          <div class="tab-header">
+            <h2 class="tab-title" data-i18n="profileTitle">User Profile & Account</h2>
+            <p class="tab-subtitle" data-i18n="profileSubtitle">Manage account details, family members, and specialist appointments.</p>
+          </div>
+
+          <!-- Account Overview Card -->
+          <div class="result-card" style="margin-bottom: 24px;">
+            <h3 class="sos-section-title" style="margin-bottom: 15px;">👤 Account Details</h3>
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+              <div style="width: 54px; height: 54px; border-radius: 50%; background: rgba(0, 212, 255, 0.15); border: 2px solid var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+                👤
+              </div>
+              <div>
+                <div id="profile-user-name" style="font-weight: 700; font-size: 1.15rem; color: #fff;">User Profile</div>
+                <div id="profile-user-email" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;">Authenticated User</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Family Profiles Card -->
+          <div class="result-card" style="margin-bottom: 24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 class="sos-section-title">👨‍👩‍👧 Family Profiles</h3>
+              <button class="btn btn-ghost" style="padding: 8px 16px; font-size:0.85rem;" onclick="document.getElementById('add-member-form')?.classList.toggle('open')">
+                ➕ Add Member
+              </button>
+            </div>
+
+            <div id="add-member-form" style="margin-bottom:20px; padding:18px; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:14px;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-weight:600; margin-bottom:6px; display:block;">Name</label>
+                  <input type="text" class="form-input" id="member-name" placeholder="e.g. Rahul Sharma" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-weight:600; margin-bottom:6px; display:block;">Age</label>
+                  <input type="number" class="form-input" id="member-age" placeholder="e.g. 45" />
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" style="font-weight:600; margin-bottom:6px; display:block;">Relation</label>
+                  <input type="text" class="form-input" id="member-relation" placeholder="e.g. Father" />
+                </div>
+              </div>
+              <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button class="btn btn-ghost" style="padding:8px 18px;" onclick="document.getElementById('add-member-form').classList.remove('open')">Cancel</button>
+                <button class="btn btn-analyze" style="padding:8px 20px;" onclick="submitFamilyMember()">💾 Save Member</button>
+              </div>
+            </div>
+
+            <div id="family-members-list" style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- 📅 MY APPOINTMENTS SECTION -->
+          <div class="result-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 class="sos-section-title">📅 My Appointments</h3>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Synced with Supabase Security</span>
+            </div>
+            <div id="profile-appointments-list">
+              <!-- Injected via window.appointmentManager.renderMyAppointments() -->
             </div>
           </div>
         </section>
@@ -1394,6 +1485,8 @@
   <script src="js/history.js?v=2.0"></script>
   <script src="js/sos.js?v=2.0"></script>
   <script src="js/chatbot.js?v=2.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="js/lab-analyzer.js?v=2.0"></script>
   <script src="js/appointment.js?v=2.0"></script>
   <script src="js/app.js?v=2.0"></script>

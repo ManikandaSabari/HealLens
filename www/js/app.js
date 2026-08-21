@@ -29,6 +29,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Init Appointment Manager
   window.appointmentManager?.init();
+
+  // Topbar user profile card click -> open profile tab
+  document.getElementById("user-profile-card")?.addEventListener("click", () => {
+    showTab("profile");
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    document.querySelector('.nav-btn[data-tab="profile"]')?.classList.add("active");
+  });
 });
 
 // Global helpers for HTML onclick handlers
@@ -561,20 +568,36 @@ function triggerManualSOS() {
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 function renderProfile() {
-  const container = document.getElementById("family-members-list");
-  if (!container) return;
+  const user = window.currentUser;
+  const nameEl = document.getElementById("profile-user-name");
+  const emailEl = document.getElementById("profile-user-email");
 
-  const members = window.historyManager?.getFamilyMembers() || [];
-  container.innerHTML = members.map(m => `
-    <div class="family-card">
-      <div class="family-avatar">${m.name.charAt(0).toUpperCase()}</div>
-      <div class="family-info">
-        <div class="family-name">${m.name}</div>
-        <div class="family-meta">${m.relation}${m.age ? " · " + m.age + " yrs" : ""}</div>
+  if (nameEl) nameEl.textContent = user?.fullName || "User Profile";
+  if (emailEl) emailEl.textContent = user?.email || "Email not available";
+
+  const container = document.getElementById("family-members-list");
+  if (container) {
+    const members = window.historyManager?.getFamilyMembers() || [];
+    container.innerHTML = members.map(m => `
+      <div class="family-card">
+        <div class="family-avatar">${m.name.charAt(0).toUpperCase()}</div>
+        <div class="family-info">
+          <div class="family-name">${m.name}</div>
+          <div class="family-meta">${m.relation}${m.age ? " · " + m.age + " yrs" : ""}</div>
+        </div>
+        ${m.id ? `<button class="family-delete-btn" onclick="deleteFamilyMember('${m.id}')">🗑️</button>` : ""}
       </div>
-      ${m.id ? `<button class="family-delete-btn" onclick="deleteFamilyMember('${m.id}')">🗑️</button>` : ""}
-    </div>
-  `).join("");
+    `).join("");
+  }
+
+  // Render My Appointments section inside Profile
+  if (window.appointmentManager) {
+    if (typeof window.appointmentManager.fetchRemoteAppointments === "function") {
+      window.appointmentManager.fetchRemoteAppointments();
+    } else if (typeof window.appointmentManager.renderMyAppointments === "function") {
+      window.appointmentManager.renderMyAppointments();
+    }
+  }
 }
 
 function submitFamilyMember() {

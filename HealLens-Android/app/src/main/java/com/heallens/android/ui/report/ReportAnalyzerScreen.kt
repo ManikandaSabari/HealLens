@@ -1,5 +1,12 @@
 package com.heallens.android.ui.report
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.graphics.pdf.PdfRenderer
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import android.content.Context
 import android.net.Uri
 import android.os.Handler
@@ -76,6 +83,7 @@ import com.heallens.android.data.repository.ClinicalHistoryRepository
 import com.heallens.android.model.ClinicalRecord
 import com.heallens.android.ui.components.GlassTextField
 import com.heallens.android.ui.components.GradientButton
+import com.heallens.android.ui.components.SpecialistDiscoveryWidget
 import com.heallens.android.ui.theme.CyanPrimary
 import com.heallens.android.ui.theme.DarkBackground
 import com.heallens.android.ui.theme.PurpleAccent
@@ -301,8 +309,8 @@ val pddBiomarkers = listOf(
 
 data class BiomarkerEvaluation(
     val config: BiomarkerConfig,
-    val value: Double,
-    val status: String, // "NORMAL", "LOW", "HIGH", "CRITICAL"
+    val value: Double?,
+    val status: String, // "NORMAL", "LOW", "HIGH", "CRITICAL", "NOT_PROVIDED"
     val statusColor: Color
 )
 
@@ -364,21 +372,14 @@ fun ReportAnalyzerScreen(
     // Biomarker Value Inputs Map
     val biomarkerInputs = remember {
         mutableStateOf(
-            mapOf(
-                "glucose" to "90",
-                "cholesterol" to "165",
-                "triglycerides" to "110",
-                "hemoglobin" to "14.5",
-                "creatinine" to "0.8",
-                "ast" to "24",
-                "tsh" to "2.1"
-            )
+            pddBiomarkers.associate { it.key to "" }
         )
     }
 
     var isAnalyzing by remember { mutableStateOf(false) }
     var reportAnalysis by remember { mutableStateOf<FullReportAnalysis?>(null) }
     var hasSavedRecord by remember { mutableStateOf(false) }
+    var insufficientDataNotice by remember { mutableStateOf<String?>(null) }
 
     // Doctor Booking Modal State
     var showAppointmentModal by remember { mutableStateOf(false) }
@@ -417,124 +418,108 @@ fun ReportAnalyzerScreen(
         }
     }
 
-    fun executeAnalysis() {
+    fun executeAnalysis(extractedVals: Map<String, Double> = emptyMap()) {
         isAnalyzing = true
         reportAnalysis = null
         hasSavedRecord = false
 
         scope.launch {
-            delay(500)
+            delay(300)
 
-            val currentVals = pddBiomarkers.associate { bio ->
-                bio.key to (biomarkerInputs.value[bio.key]?.toDoubleOrNull() ?: bio.min)
+            val activeVals = if (extractedVals.isNotEmpty()) {
+                extractedVals
+            } else {
+                pddBiomarkers.mapNotNull { bio ->
+                    val num = biomarkerInputs.value[bio.key]?.toDoubleOrNull()
+                    if (num != null) bio.key to num else null
+                }.toMap()
             }
 
-            val gl = currentVals["glucose"] ?: 90.0
-            val ch = currentVals["cholesterol"] ?: 165.0
-            val tr = currentVals["triglycerides"] ?: 110.0
-            val hb = currentVals["hemoglobin"] ?: 14.5
-            val cr = currentVals["creatinine"] ?: 0.8
-            val ast = currentVals["ast"] ?: 24.0
-            val tsh = currentVals["tsh"] ?: 2.1
-
-            // 1. Determine Risk Summary, Level & Points matching PDD rules
-            val riskEval = when {
-                gl <= 100.0 && ch <= 200.0 && tr <= 150.0 && hb >= 12.0 && cr <= 1.2 && ast <= 40.0 && tsh <= 4.5 && tsh >= 0.4 ->
-                    RiskEvaluationResult(
-                        "Healthy Biomarker Profile",
-                        "normal",
-                        Color(0xFF10B981),
-                        listOf(
-                            "All biomarkers are within normal laboratory reference ranges.",
-                            "Optimal metabolic, lipid, renal, and liver function observed.",
-                            "Continue maintaining a healthy lifestyle, diet, and hydration."
-                        )
-                    )
-                gl > 120.0 && hb < 11.5 ->
-                    RiskEvaluationResult(
-                        "Diabetic Tendency & Mild Anemia",
-                        "moderate",
-                        Color(0xFFF59E0B),
-                        listOf(
-                            "Elevated Blood Glucose (${gl.toInt()} mg/dL) indicates glycemic strain.",
-                            "Reduced Hemoglobin ($hb g/dL) suggests mild iron-deficiency anemia.",
-                            "Endocrine evaluation and dietary sugar/iron management recommended."
-                        )
-                    )
-                ch > 200.0 || tr > 150.0 ->
-                    RiskEvaluationResult(
-                        "Hyperlipidemia & Cardiovascular Stress",
-                        "moderate",
-                        Color(0xFFF59E0B),
-                        listOf(
-                            "High Total Cholesterol (${ch.toInt()} mg/dL) detected above 200 mg/dL threshold.",
-                            "Elevated Triglycerides (${tr.toInt()} mg/dL) increase cardiovascular risk.",
-                            "Lifestyle modification and lipid clearance management recommended."
-                        )
-                    )
-                ast > 40.0 && cr > 1.2 ->
-                    RiskEvaluationResult(
-                        "Hepatorenal Stress (Liver & Kidney)",
-                        "critical",
-                        Color(0xFFEF4444),
-                        listOf(
-                            "Elevated AST (${ast.toInt()} U/L) indicates liver cell inflammation.",
-                            "Elevated Serum Creatinine ($cr mg/dL) suggests renal filtration strain.",
-                            "Prompt Hepatology & Nephrology clinical evaluation advised."
-                        )
-                    )
-                tsh > 4.5 ->
-                    RiskEvaluationResult(
-                        "Underactive Thyroid (Hypothyroidism)",
-                        "moderate",
-                        Color(0xFFF59E0B),
-                        listOf(
-                            "Elevated TSH ($tsh uIU/mL) indicates thyroid slowdown.",
-                            "Sluggish metabolism and fatigue risk factors present.",
-                            "Endocrinology evaluation recommended for thyroid hormone levels."
-                        )
-                    )
-                else ->
-                    RiskEvaluationResult(
-                        "Isolated Biomarker Elevation",
-                        "moderate",
-                        Color(0xFFF59E0B),
-                        listOf(
-                            "One or more biomarkers exceed typical laboratory reference ranges.",
-                            "Targeted lifestyle or clinical follow-up recommended."
-                        )
-                    )
+            if (activeVals.isEmpty()) {
+                isAnalyzing = false
+                insufficientDataNotice = "⚠️ Insufficient Report Data: No recognized clinical biomarkers found in the uploaded file. Please upload a valid laboratory blood report PDF or image."
+                reportAnalysis = null
+                return@launch
             }
 
-            val riskSummary = riskEval.summary
+            val gl = activeVals["glucose"]
+            val ch = activeVals["cholesterol"]
+            val tr = activeVals["triglycerides"]
+            val hb = activeVals["hemoglobin"]
+            val cr = activeVals["creatinine"]
+            val ast = activeVals["ast"]
+            val tsh = activeVals["tsh"]
+
+            val abnormalSummaries = mutableListOf<String>()
+            var level = "normal"
+            var color = Color(0xFF10B981)
+
+            if (gl != null && gl > 120.0) {
+                abnormalSummaries.add("Elevated Blood Glucose ($gl mg/dL) observed.")
+                level = "high"
+                color = Color(0xFFEF4444)
+            }
+            if (ch != null && ch > 200.0) {
+                abnormalSummaries.add("Elevated Total Cholesterol ($ch mg/dL) observed.")
+                if (level != "critical") { level = "high"; color = Color(0xFFEF4444) }
+            }
+            if (tr != null && tr > 150.0) {
+                abnormalSummaries.add("Elevated Triglycerides ($tr mg/dL) observed.")
+                if (level != "critical") { level = "high"; color = Color(0xFFEF4444) }
+            }
+            if (hb != null && hb < 12.0) {
+                abnormalSummaries.add("Lowered Hemoglobin ($hb g/dL) observed.")
+                if (level != "critical") { level = "high"; color = Color(0xFFEF4444) }
+            }
+            if (cr != null && cr > 1.2) {
+                abnormalSummaries.add("Elevated Serum Creatinine ($cr mg/dL) observed.")
+                if (level != "critical") { level = "high"; color = Color(0xFFEF4444) }
+            }
+            if (ast != null && ast > 40.0) {
+                abnormalSummaries.add("Elevated AST ($ast U/L) observed.")
+                if (level != "critical") { level = "high"; color = Color(0xFFEF4444) }
+            }
+            if (tsh != null && (tsh > 4.5 || tsh < 0.4)) {
+                abnormalSummaries.add("Thyroid Stimulating Hormone out of range ($tsh uIU/mL).")
+                if (level != "critical") { level = "high"; color = Color(0xFFEF4444) }
+            }
+
+            val riskSummary = if (abnormalSummaries.isEmpty()) "Healthy Biomarker Profile" else "Biomarker Attention Needed"
+            val riskPoints = if (abnormalSummaries.isEmpty()) listOf("All recognized biomarkers are within normal reference ranges.") else abnormalSummaries
+
+            val riskEval = RiskEvaluationResult(riskSummary, level, color, riskPoints)
+
             val riskLevel = riskEval.level
             val riskColor = riskEval.color
-            val riskPoints = riskEval.points
 
-            // 2. Evaluate each biomarker position and status
+            // 2. Evaluate all 7 biomarkers, marking missing ones as NOT_PROVIDED
             val evaluations = pddBiomarkers.map { bio ->
-                val valNum = currentVals[bio.key] ?: bio.min
-                val (status, statusColor) = when {
-                    valNum < bio.min -> "LOW" to Color(0xFFF59E0B)
-                    valNum > bio.max * 1.5 -> "CRITICAL" to Color(0xFFEF4444)
-                    valNum > bio.max -> "HIGH" to Color(0xFFF59E0B)
-                    else -> "NORMAL" to Color(0xFF10B981)
+                val valNum = activeVals[bio.key]
+                if (valNum != null) {
+                    val (status, statusColor) = when {
+                        valNum < bio.min -> "LOW" to Color(0xFFF59E0B)
+                        valNum > bio.max * 1.5 -> "CRITICAL" to Color(0xFFEF4444)
+                        valNum > bio.max -> "HIGH" to Color(0xFFF59E0B)
+                        else -> "NORMAL" to Color(0xFF10B981)
+                    }
+                    BiomarkerEvaluation(bio, valNum, status, statusColor)
+                } else {
+                    BiomarkerEvaluation(bio, null, "NOT_PROVIDED", Color(0xFF6B7280))
                 }
-                BiomarkerEvaluation(bio, valNum, status, statusColor)
             }
 
-            // 3. Dynamic Natural Remedies & Ayurvedic Suggestions for abnormal values
-            val abnormalConfigs = evaluations.filter { it.status != "NORMAL" }.map { it.config }
+            // 3. Dynamic Natural Remedies & Ayurvedic Suggestions for present abnormal values
+            val abnormalConfigs = evaluations.filter { it.value != null && it.status != "NORMAL" && it.status != "NOT_PROVIDED" }.map { it.config }
             val naturalRemedies = abnormalConfigs.map { it.naturalRemedy }
             val ayurvedicSuggestions = abnormalConfigs.map { it.ayurvedicSuggestion }
 
             // 4. Specialist Mapping
             val (specialist, urgent) = when {
-                gl > 120.0 || tsh > 4.5 -> "Endocrinologist" to false
-                ch > 200.0 || tr > 150.0 -> "Cardiologist" to false
-                ast > 40.0 -> "Hepatologist" to false
-                cr > 1.2 -> "Nephrologist" to (riskLevel == "critical")
-                hb < 11.5 -> "Hematologist" to false
+                (gl ?: 0.0) > 120.0 || (tsh ?: 0.0) > 4.5 -> "Endocrinologist" to false
+                (ch ?: 0.0) > 200.0 || (tr ?: 0.0) > 150.0 -> "Cardiologist" to false
+                (ast ?: 0.0) > 40.0 -> "Hepatologist" to false
+                (cr ?: 0.0) > 1.2 -> "Nephrologist" to (riskLevel == "critical")
+                (hb ?: 99.0) < 11.5 -> "Hematologist" to false
                 else -> "General Physician" to false
             }
 
@@ -588,11 +573,24 @@ fun ReportAnalyzerScreen(
         }
     }
 
+    var analysisRequestId by remember { mutableStateOf(0) }
+
     val docLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         documentUri = uri
         if (uri != null) {
+            val requestId = ++analysisRequestId
+
+            // 1. IMMEDIATELY RESET ALL PREVIOUS REPORT STATE BEFORE PROCESSING NEW DOCUMENT
+            reportAnalysis = null
+            insufficientDataNotice = null
+            isAnalyzing = false
+            hasSavedRecord = false
+            val clearedMap = biomarkerInputs.value.toMutableMap()
+            pddBiomarkers.forEach { bio -> clearedMap[bio.key] = "" }
+            biomarkerInputs.value = clearedMap
+
             isScanningDoc = true
             scope.launch {
                 val steps = listOf(
@@ -605,45 +603,36 @@ fun ReportAnalyzerScreen(
                 )
                 for (step in steps) {
                     scanningStepText = step
-                    delay(350)
+                    delay(250)
                 }
                 isScanningDoc = false
 
-                // Randomly select a sample profile to simulate document parsing
-                val presets = listOf("healthy", "lipid", "diabetic")
-                val chosen = presets.random()
-                val updated = biomarkerInputs.value.toMutableMap()
-                when (chosen) {
-                    "healthy" -> {
-                        updated["glucose"] = "85"
-                        updated["cholesterol"] = "170"
-                        updated["triglycerides"] = "115"
-                        updated["hemoglobin"] = "14.8"
-                        updated["creatinine"] = "0.8"
-                        updated["ast"] = "22"
-                        updated["tsh"] = "1.8"
+                // Real ML Kit OCR & PDF page rendering
+                val rawText = processDocumentUri(context, uri)
+
+                // Race condition check: abort if another URI was selected in the meantime
+                if (requestId != analysisRequestId) return@launch
+
+                val extractedMap = extractBiomarkersFromText(rawText)
+
+                android.util.Log.d("REPORT_ANALYZER_DEBUG", "EXTRACTED BIOMARKERS: $extractedMap (count=${extractedMap.size})")
+
+                if (extractedMap.isEmpty()) {
+                    insufficientDataNotice = "⚠️ Insufficient Report Data: No recognized clinical biomarkers found in the uploaded file. Please upload a valid laboratory blood report PDF or image."
+                    reportAnalysis = null
+                    val updated = biomarkerInputs.value.toMutableMap()
+                    pddBiomarkers.forEach { bio -> updated[bio.key] = "" }
+                    biomarkerInputs.value = updated
+                } else {
+                    insufficientDataNotice = null
+                    val updated = biomarkerInputs.value.toMutableMap()
+                    pddBiomarkers.forEach { bio -> updated[bio.key] = "" }
+                    extractedMap.forEach { (key, valNum) ->
+                        updated[key] = if (valNum % 1.0 == 0.0) valNum.toInt().toString() else valNum.toString()
                     }
-                    "lipid" -> {
-                        updated["glucose"] = "95"
-                        updated["cholesterol"] = "255"
-                        updated["triglycerides"] = "220"
-                        updated["hemoglobin"] = "13.5"
-                        updated["creatinine"] = "0.9"
-                        updated["ast"] = "35"
-                        updated["tsh"] = "2.2"
-                    }
-                    else -> {
-                        updated["glucose"] = "195"
-                        updated["cholesterol"] = "185"
-                        updated["triglycerides"] = "165"
-                        updated["hemoglobin"] = "9.5"
-                        updated["creatinine"] = "1.1"
-                        updated["ast"] = "45"
-                        updated["tsh"] = "5.2"
-                    }
+                    biomarkerInputs.value = updated
+                    executeAnalysis(extractedMap)
                 }
-                biomarkerInputs.value = updated
-                executeAnalysis()
             }
         }
     }
@@ -1047,7 +1036,7 @@ fun ReportAnalyzerScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 pddBiomarkers.forEach { bio ->
-                    val currentVal = biomarkerInputs.value[bio.key] ?: bio.min.toString()
+                    val currentVal = biomarkerInputs.value[bio.key] ?: ""
                     Column(modifier = Modifier.padding(bottom = 12.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -1083,6 +1072,27 @@ fun ReportAnalyzerScreen(
                     onClick = { executeAnalysis() },
                     isLoading = isAnalyzing
                 )
+            insufficientDataNotice?.let { notice ->
+                Spacer(modifier = Modifier.height(20.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFEF4444).copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                        .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                        .padding(16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Warning, contentDescription = "Warning", tint = Color(0xFFEF4444), modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = notice,
+                            color = Color(0xFFFCA5A5),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
             }
 
             // 6. ANALYSIS RESULT SECTION (FIXED: TSH alignment + Reusable BiomarkerGaugeCard)
@@ -1216,7 +1226,9 @@ fun ReportAnalyzerScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     analysis.evaluations.forEach { ev ->
-                        val isAbnormal = ev.status != "NORMAL"
+                        val isPresent = ev.value != null
+                        val valNum = ev.value ?: 0.0
+                        val isAbnormal = isPresent && (valNum < ev.config.min || valNum > ev.config.max)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1228,14 +1240,15 @@ fun ReportAnalyzerScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "${ev.config.name} (${ev.value} ${ev.config.unit})",
-                                    color = if (isAbnormal) Color(0xFFF59E0B) else TextPrimary,
+                                    text = if (isPresent) "${ev.config.name} ($valNum ${ev.config.unit})" else "${ev.config.name} — Not provided in the report",
+                                    color = if (isAbnormal) Color(0xFFF59E0B) else if (isPresent) TextPrimary else TextMuted,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                    fontSize = 12.sp,
+                                    fontStyle = if (!isPresent) FontStyle.Italic else FontStyle.Normal
                                 )
                                 Text(
                                     text = ev.config.description,
-                                    color = TextSecondary,
+                                    color = if (isPresent) TextSecondary else TextMuted,
                                     fontSize = 11.sp,
                                     lineHeight = 15.sp,
                                     modifier = Modifier.padding(top = 3.dp)
@@ -1325,6 +1338,23 @@ fun ReportAnalyzerScreen(
 
                                 Spacer(modifier = Modifier.height(10.dp))
 
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFFFF9800).copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                        .border(1.dp, Color(0xFFFF9800).copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                        .padding(10.dp)
+                                ) {
+                                    Text(
+                                        text = "⚠️ Note: Traditional wellness practices are for supportive care and general educational purposes. They do not replace professional medical diagnosis or treatment.",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFFFFB74D),
+                                        lineHeight = 15.sp
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
                                 analysis.ayurvedicSuggestions.forEachIndexed { idx, ayur ->
                                     if (idx > 0) Spacer(modifier = Modifier.height(10.dp))
                                     Column {
@@ -1361,42 +1391,6 @@ fun ReportAnalyzerScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // 7. Recommended Specialist Card
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFF00D4FF).copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-                            .border(1.dp, Color(0xFF00D4FF).copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                            .padding(16.dp)
-                    ) {
-                        Column {
-                            Text("Recommended Specialist", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(analysis.specialist, color = CyanPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                    if (analysis.urgentVisit) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .background(Color(0xFFEF4444).copy(alpha = 0.15f), RoundedCornerShape(50))
-                                                .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f), RoundedCornerShape(50))
-                                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                                        ) {
-                                            Text("Urgent Consultation", color = Color(0xFFEF4444), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     Spacer(modifier = Modifier.height(18.dp))
 
                     // 8 & 9. Result Action Buttons (Read Aloud Toggle & Book Appointment)
@@ -1425,125 +1419,19 @@ fun ReportAnalyzerScreen(
                                 fontSize = 12.sp
                             )
                         }
-
-                        GradientButton(
-                            text = "📅 Book Appointment →",
-                            onClick = {
-                                bookingDoctor = null
-                                bookingConfirmed = false
-                                confirmedAppointmentId = ""
-                                showAppointmentModal = true
-                            },
-                            modifier = Modifier.weight(1.2f)
-                        )
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    SpecialistDiscoveryWidget(
+                        specialty = analysis.specialist,
+                        contextualNote = "Based on evaluated laboratory report biomarkers, consulting a ${analysis.specialist} is recommended for formal clinical evaluation and medical consultation. This recommendation is educational and does not replace a medical diagnosis."
+                    )
                 }
             }
         }
     }
-
-    // Modal: Doctor Booking Modal for Report Specialist
-    if (showAppointmentModal) {
-        val currentSpecialist = reportAnalysis?.specialist ?: "General Physician"
-        val doctorList = doctorsDatabase[currentSpecialist] ?: doctorsDatabase["General Physician"]!!
-
-        AlertDialog(
-            onDismissRequest = { showAppointmentModal = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("📅 ", fontSize = 24.sp)
-                    Column {
-                        Text("Book Doctor Appointment", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        Text("Recommended Specialty: $currentSpecialist", color = CyanPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            },
-            text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    if (bookingConfirmed) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF10B981).copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                                .border(1.dp, Color(0xFF10B981).copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                                .padding(16.dp)
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("✅ Appointment Confirmed!", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text("Appointment ID: $confirmedAppointmentId", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("Doctor: ${bookingDoctor?.name}", color = TextSecondary, fontSize = 12.sp)
-                                Text("Hospital: ${bookingDoctor?.hospital}", color = TextSecondary, fontSize = 12.sp)
-                                Text("Slot: ${bookingDoctor?.slot}", color = TextSecondary, fontSize = 12.sp)
-                                Text("Patient: $patientName", color = TextSecondary, fontSize = 12.sp)
-                            }
-                        }
-                    } else {
-                        Text("Available $currentSpecialist Doctors:", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        doctorList.forEach { doc ->
-                            val isSelected = bookingDoctor == doc
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) CyanPrimary.copy(alpha = 0.15f) else SurfaceGlass)
-                                    .border(1.dp, if (isSelected) CyanPrimary else SurfaceGlassBorder, RoundedCornerShape(12.dp))
-                                    .clickable { bookingDoctor = doc }
-                                    .padding(12.dp)
-                            ) {
-                                Column {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(doc.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                        Text(doc.rating, color = Color(0xFFFFB800), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                    Text("${doc.exp} • ${doc.hospital}", color = TextMuted, fontSize = 11.sp)
-                                    Text("Slot: ${doc.slot}", color = CyanPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                if (bookingConfirmed) {
-                    GradientButton(
-                        text = "Done",
-                        onClick = { showAppointmentModal = false }
-                    )
-                } else {
-                    GradientButton(
-                        text = "Confirm Booking",
-                        onClick = {
-                            if (bookingDoctor == null) {
-                                Toast.makeText(context, "Please select a doctor to confirm booking.", Toast.LENGTH_SHORT).show()
-                            } else {
-                                confirmedAppointmentId = "HL-${(10000..99999).random()}"
-                                bookingConfirmed = true
-                            }
-                        }
-                    )
-                }
-            },
-            dismissButton = {
-                if (!bookingConfirmed) {
-                    OutlinedButton(
-                        onClick = { showAppointmentModal = false }
-                    ) {
-                        Text("Cancel", color = TextMuted)
-                    }
-                }
-            },
-            containerColor = DarkBackground,
-            shape = RoundedCornerShape(20.dp)
-        )
-    }
+}
 }
 
 // Reusable Biomarker Gauge Card Component (FIX 3: Used uniformly for all 7 biomarkers including TSH)
@@ -1553,96 +1441,572 @@ private fun BiomarkerGaugeCard(
 ) {
     val bio = ev.config
     val valNum = ev.value
-    val totalRange = bio.maxLimit - bio.minLimit
-    val pct = (((valNum - bio.minLimit) / totalRange) * 100).coerceIn(2.0, 98.0)
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 18.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    if (valNum == null) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 14.dp)
         ) {
-            Text(
-                text = bio.name,
-                color = TextPrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                modifier = Modifier.weight(1f),
-                maxLines = 2,
-                softWrap = true
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "$valNum ${bio.unit}",
-                    color = CyanPrimary,
+                    text = bio.name,
+                    color = TextMuted,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
+                    fontSize = 12.sp,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    softWrap = true
                 )
-                Spacer(modifier = Modifier.width(6.dp))
-                Box(
-                    modifier = Modifier
-                        .background(ev.statusColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(ev.status, color = ev.statusColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.width(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Not provided in the report",
+                        color = TextMuted,
+                        fontStyle = FontStyle.Italic,
+                        fontSize = 11.sp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF6B7280).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text("Not Provided", color = TextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
+    } else {
+        val totalRange = bio.maxLimit - bio.minLimit
+        val pct = (((valNum - bio.minLimit) / totalRange) * 100).coerceIn(2.0, 98.0)
 
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Gauge Track Bar + Circular Pin Marker
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(18.dp),
-            contentAlignment = Alignment.CenterStart
+                .padding(bottom = 18.dp)
         ) {
-            // Background Colored Track Bar (8.dp height)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = bio.name,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    softWrap = true
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "$valNum ${bio.unit}",
+                        color = CyanPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(ev.statusColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(ev.status, color = ev.statusColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Gauge Track Bar + Circular Pin Marker
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFFFFFFFF).copy(alpha = 0.1f))
+                    .height(18.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    val lowZonePct = ((bio.min - bio.minLimit) / totalRange).toFloat().coerceIn(0f, 1f)
-                    val normalZonePct = ((bio.max - bio.min) / totalRange).toFloat().coerceIn(0f, 1f)
-                    val highZonePct = (1f - lowZonePct - normalZonePct).coerceIn(0f, 1f)
+                // Background Colored Track Bar (8.dp height)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFFFFFFFF).copy(alpha = 0.1f))
+                ) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        val lowZonePct = ((bio.min - bio.minLimit) / totalRange).toFloat().coerceIn(0f, 1f)
+                        val normalZonePct = ((bio.max - bio.min) / totalRange).toFloat().coerceIn(0f, 1f)
+                        val highZonePct = (1f - lowZonePct - normalZonePct).coerceIn(0f, 1f)
 
-                    Box(modifier = Modifier.weight(lowZonePct.coerceAtLeast(0.01f)).fillMaxSize().background(Color(0xFF00D4FF).copy(alpha = 0.25f)))
-                    Box(modifier = Modifier.weight(normalZonePct.coerceAtLeast(0.01f)).fillMaxSize().background(Color(0xFF10B981).copy(alpha = 0.35f)))
-                    Box(modifier = Modifier.weight(highZonePct.coerceAtLeast(0.01f)).fillMaxSize().background(Color(0xFFEF4444).copy(alpha = 0.3f)))
+                        Box(modifier = Modifier.weight(lowZonePct.coerceAtLeast(0.01f)).fillMaxSize().background(Color(0xFF00D4FF).copy(alpha = 0.25f)))
+                        Box(modifier = Modifier.weight(normalZonePct.coerceAtLeast(0.01f)).fillMaxSize().background(Color(0xFF10B981).copy(alpha = 0.35f)))
+                        Box(modifier = Modifier.weight(highZonePct.coerceAtLeast(0.01f)).fillMaxSize().background(Color(0xFFEF4444).copy(alpha = 0.3f)))
+                    }
                 }
+
+                // Circular Pin Marker (16.dp glowing circle sitting directly on the line)
+                val bias = ((pct / 50.0) - 1.0).toFloat().coerceIn(-0.95f, 0.95f)
+                Box(
+                    modifier = Modifier
+                        .align(androidx.compose.ui.BiasAlignment(bias, 0f))
+                        .size(16.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White)
+                        .border(3.dp, CyanPrimary, RoundedCornerShape(50))
+                )
             }
 
-            // Circular Pin Marker (16.dp glowing circle sitting directly on the line)
-            val bias = ((pct / 50.0) - 1.0).toFloat().coerceIn(-0.95f, 0.95f)
-            Box(
+            Row(
                 modifier = Modifier
-                    .align(androidx.compose.ui.BiasAlignment(bias, 0f))
-                    .size(16.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color.White)
-                    .border(3.dp, CyanPrimary, RoundedCornerShape(50))
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 2.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("${bio.minLimit}", color = TextMuted, fontSize = 9.sp)
-            Text("Normal: ${bio.min} - ${bio.max}", color = TextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-            Text("${bio.maxLimit}", color = TextMuted, fontSize = 9.sp)
+                    .fillMaxWidth()
+                    .padding(top = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("${bio.minLimit}", color = TextMuted, fontSize = 9.sp)
+                Text("Normal: ${bio.min} - ${bio.max}", color = TextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Text("${bio.maxLimit}", color = TextMuted, fontSize = 9.sp)
+            }
         }
     }
+}
+
+private data class PddBiomarkerRule(
+    val key: String,
+    val aliases: List<Regex>,
+    val exclusions: List<Regex>,
+    val minValid: Double,
+    val maxValid: Double
+)
+
+private fun normalizeExtractedText(rawText: String): String {
+    if (rawText.isBlank()) return ""
+
+    var text = rawText
+        .replace(Regex("[\\u00A0\\u1680\\u180E\\u2000-\\u200B\\u202F\\u205F\\u3000]"), " ")
+        .replace(Regex("\\s*[:=–—]\\s*"), " : ")
+        .replace(Regex("\\.{2,}"), " ")
+        .replace(Regex("mg\\s*/\\s*dL", RegexOption.IGNORE_CASE), "mg/dL")
+        .replace(Regex("g\\s*/\\s*dL", RegexOption.IGNORE_CASE), "g/dL")
+        .replace(Regex("uIU\\s*/\\s*mL", RegexOption.IGNORE_CASE), "uIU/mL")
+        .replace(Regex("µIU\\s*/\\s*mL", RegexOption.IGNORE_CASE), "uIU/mL")
+        .replace(Regex("U\\s*/\\s*L", RegexOption.IGNORE_CASE), "U/L")
+
+    val testKeywords = listOf(
+        "Blood Glucose", "Fasting Glucose", "Random Glucose", "Fasting Blood Sugar", "Random Blood Sugar",
+        "Total Cholesterol", "Serum Cholesterol", "Triglycerides", "Serum Triglycerides",
+        "Hemoglobin", "Haemoglobin", "Serum Creatinine", "AST", "SGOT", "TSH", "Thyroid Stimulating"
+    )
+
+    for (kw in testKeywords) {
+        val reKw = Regex("([^\\n])\\s*(${Regex.escape(kw)})", RegexOption.IGNORE_CASE)
+        text = text.replace(reKw, "$1\n$2")
+    }
+
+    return text.split(Regex("\\r?\\n"))
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .joinToString("\n")
+}
+
+private fun extractBiomarkersFromText(rawText: String): Map<String, Double> {
+    if (rawText.isBlank()) return emptyMap()
+
+    val normalizedText = normalizeExtractedText(rawText)
+    val lines = normalizedText.split(Regex("\\r?\\n")).map { it.trim() }.filter { it.isNotEmpty() }
+
+    val rules = listOf(
+        PddBiomarkerRule(
+            key = "glucose",
+            aliases = listOf(
+                Regex("fasting\\s+blood\\s+sugar", RegexOption.IGNORE_CASE),
+                Regex("random\\s+blood\\s+sugar", RegexOption.IGNORE_CASE),
+                Regex("fasting\\s+blood\\s+glucose", RegexOption.IGNORE_CASE),
+                Regex("random\\s+blood\\s+glucose", RegexOption.IGNORE_CASE),
+                Regex("blood\\s+glucose", RegexOption.IGNORE_CASE),
+                Regex("fasting\\s+glucose", RegexOption.IGNORE_CASE),
+                Regex("random\\s+glucose", RegexOption.IGNORE_CASE),
+                Regex("blood\\s+sugar", RegexOption.IGNORE_CASE),
+                Regex("\\bfbs\\b", RegexOption.IGNORE_CASE),
+                Regex("\\brbs\\b", RegexOption.IGNORE_CASE),
+                Regex("\\bglucose\\b", RegexOption.IGNORE_CASE)
+            ),
+            exclusions = listOf(
+                Regex("hba1c", RegexOption.IGNORE_CASE),
+                Regex("hb\\s*a1c", RegexOption.IGNORE_CASE),
+                Regex("glycated", RegexOption.IGNORE_CASE),
+                Regex("urine", RegexOption.IGNORE_CASE),
+                Regex("microalbumin", RegexOption.IGNORE_CASE)
+            ),
+            minValid = 20.0,
+            maxValid = 600.0
+        ),
+        PddBiomarkerRule(
+            key = "cholesterol",
+            aliases = listOf(
+                Regex("total\\s+cholesterol", RegexOption.IGNORE_CASE),
+                Regex("cholesterol[,\\s]+total", RegexOption.IGNORE_CASE),
+                Regex("serum\\s+cholesterol", RegexOption.IGNORE_CASE),
+                Regex("cholesterol\\s+total", RegexOption.IGNORE_CASE),
+                Regex("\\bcholesterol\\b", RegexOption.IGNORE_CASE)
+            ),
+            exclusions = listOf(
+                Regex("hdl", RegexOption.IGNORE_CASE),
+                Regex("ldl", RegexOption.IGNORE_CASE),
+                Regex("vldl", RegexOption.IGNORE_CASE),
+                Regex("non-hdl", RegexOption.IGNORE_CASE),
+                Regex("ratio", RegexOption.IGNORE_CASE)
+            ),
+            minValid = 50.0,
+            maxValid = 600.0
+        ),
+        PddBiomarkerRule(
+            key = "triglycerides",
+            aliases = listOf(
+                Regex("triglycerides", RegexOption.IGNORE_CASE),
+                Regex("triglyceride", RegexOption.IGNORE_CASE),
+                Regex("serum\\s+triglycerides", RegexOption.IGNORE_CASE),
+                Regex("\\btg\\b", RegexOption.IGNORE_CASE)
+            ),
+            exclusions = listOf(
+                Regex("hdl", RegexOption.IGNORE_CASE),
+                Regex("ldl", RegexOption.IGNORE_CASE),
+                Regex("vldl", RegexOption.IGNORE_CASE),
+                Regex("ratio", RegexOption.IGNORE_CASE)
+            ),
+            minValid = 20.0,
+            maxValid = 1000.0
+        ),
+        PddBiomarkerRule(
+            key = "hemoglobin",
+            aliases = listOf(
+                Regex("hemoglobin", RegexOption.IGNORE_CASE),
+                Regex("haemoglobin", RegexOption.IGNORE_CASE),
+                Regex("\\bhb\\b", RegexOption.IGNORE_CASE),
+                Regex("\\bhgb\\b", RegexOption.IGNORE_CASE)
+            ),
+            exclusions = listOf(
+                Regex("hba1c", RegexOption.IGNORE_CASE),
+                Regex("hb\\s*a1c", RegexOption.IGNORE_CASE),
+                Regex("mch", RegexOption.IGNORE_CASE),
+                Regex("mchc", RegexOption.IGNORE_CASE),
+                Regex("mcv", RegexOption.IGNORE_CASE),
+                Regex("electrophoresis", RegexOption.IGNORE_CASE)
+            ),
+            minValid = 3.0,
+            maxValid = 25.0
+        ),
+        PddBiomarkerRule(
+            key = "creatinine",
+            aliases = listOf(
+                Regex("serum\\s+creatinine", RegexOption.IGNORE_CASE),
+                Regex("creatinine[,\\s]+serum", RegexOption.IGNORE_CASE),
+                Regex("\\bcreatinine\\b", RegexOption.IGNORE_CASE)
+            ),
+            exclusions = listOf(
+                Regex("clearance", RegexOption.IGNORE_CASE),
+                Regex("urine", RegexOption.IGNORE_CASE),
+                Regex("ratio", RegexOption.IGNORE_CASE),
+                Regex("bun", RegexOption.IGNORE_CASE),
+                Regex("urea", RegexOption.IGNORE_CASE),
+                Regex("egfr", RegexOption.IGNORE_CASE)
+            ),
+            minValid = 0.1,
+            maxValid = 15.0
+        ),
+        PddBiomarkerRule(
+            key = "ast",
+            aliases = listOf(
+                Regex("aspartate\\s+aminotransferase", RegexOption.IGNORE_CASE),
+                Regex("aspartate\\s+transaminase", RegexOption.IGNORE_CASE),
+                Regex("\\bast\\b", RegexOption.IGNORE_CASE),
+                Regex("\\bsgot\\b", RegexOption.IGNORE_CASE)
+            ),
+            exclusions = listOf(
+                Regex("alt", RegexOption.IGNORE_CASE),
+                Regex("sgpt", RegexOption.IGNORE_CASE),
+                Regex("ratio", RegexOption.IGNORE_CASE),
+                Regex("ast/alt", RegexOption.IGNORE_CASE),
+                Regex("sgot/sgpt", RegexOption.IGNORE_CASE)
+            ),
+            minValid = 2.0,
+            maxValid = 1000.0
+        ),
+        PddBiomarkerRule(
+            key = "tsh",
+            aliases = listOf(
+                Regex("thyroid\\s+stimulating\\s+hormone", RegexOption.IGNORE_CASE),
+                Regex("thyrotropin", RegexOption.IGNORE_CASE),
+                Regex("serum\\s+tsh", RegexOption.IGNORE_CASE),
+                Regex("\\btsh\\b", RegexOption.IGNORE_CASE)
+            ),
+            exclusions = listOf(
+                Regex("free\\s+t3", RegexOption.IGNORE_CASE),
+                Regex("free\\s+t4", RegexOption.IGNORE_CASE),
+                Regex("ft3", RegexOption.IGNORE_CASE),
+                Regex("ft4", RegexOption.IGNORE_CASE),
+                Regex("\\bt3\\b", RegexOption.IGNORE_CASE),
+                Regex("\\bt4\\b", RegexOption.IGNORE_CASE),
+                Regex("anti-tpo", RegexOption.IGNORE_CASE)
+            ),
+            minValid = 0.01,
+            maxValid = 100.0
+        )
+    )
+
+    val resultMap = mutableMapOf<String, Double>()
+
+    for (rule in rules) {
+        for (line in lines) {
+            if (rule.exclusions.any { it.containsMatchIn(line) }) {
+                continue
+            }
+            val aliasMatched = rule.aliases.any { it.containsMatchIn(line) }
+            if (aliasMatched) {
+                val numMatches = Regex("\\b\\d+(?:\\.\\d+)?\\b").findAll(line)
+                for (match in numMatches) {
+                    val numVal = match.value.toDoubleOrNull()
+                    if (numVal != null && numVal >= rule.minValid && numVal <= rule.maxValid) {
+                        resultMap[rule.key] = numVal
+                        break
+                    }
+                }
+            }
+            if (resultMap.containsKey(rule.key)) {
+                break
+            }
+        }
+    }
+
+    return resultMap
+}
+
+private suspend fun <T> com.google.android.gms.tasks.Task<T>.awaitTask(): T =
+    kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+        addOnSuccessListener { result ->
+            if (continuation.isActive) continuation.resume(result, null)
+        }
+        addOnFailureListener { exception ->
+            if (continuation.isActive) continuation.resumeWith(Result.failure(exception))
+        }
+    }
+
+private data class OcrElementItem(
+    val text: String,
+    val rect: android.graphics.Rect
+)
+
+private fun reconstructOcrTextFromVisionText(visionText: com.google.mlkit.vision.text.Text): String {
+    val blocks = visionText.textBlocks
+    android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_BLOCK_COUNT: ${blocks.size}")
+
+    var lineIdx = 0
+    var elemIdx = 0
+    val allElements = mutableListOf<OcrElementItem>()
+
+    blocks.forEachIndexed { bIdx, block ->
+        android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_BLOCK[$bIdx].text: ${block.text}")
+        android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_BLOCK[$bIdx].boundingBox: ${block.boundingBox}")
+        android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_LINE_COUNT: ${block.lines.size}")
+
+        block.lines.forEach { line ->
+            android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_LINE[$lineIdx].text: ${line.text}")
+            android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_LINE[$lineIdx].boundingBox: ${line.boundingBox}")
+            lineIdx++
+
+            android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_ELEMENT_COUNT: ${line.elements.size}")
+            line.elements.forEach { element ->
+                android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_ELEMENT[$elemIdx].text: ${element.text}")
+                android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_ELEMENT[$elemIdx].boundingBox: ${element.boundingBox}")
+                elemIdx++
+
+                val r = element.boundingBox ?: line.boundingBox
+                if (r != null && element.text.isNotBlank()) {
+                    allElements.add(OcrElementItem(element.text.trim(), r))
+                }
+            }
+        }
+    }
+
+    if (allElements.isEmpty()) {
+        return visionText.text
+    }
+
+    allElements.sortBy { it.rect.top }
+
+    val rows = mutableListOf<MutableList<OcrElementItem>>()
+
+    for (item in allElements) {
+        var placedInRow = false
+        val itemHeight = item.rect.height().coerceAtLeast(1)
+        val itemCenterY = item.rect.centerY()
+
+        for (row in rows) {
+            val rowTop = row.minOf { it.rect.top }
+            val rowBottom = row.maxOf { it.rect.bottom }
+            val rowCenterY = (rowTop + rowBottom) / 2
+            val rowHeight = (rowBottom - rowTop).coerceAtLeast(1)
+
+            val overlapTop = maxOf(item.rect.top, rowTop)
+            val overlapBottom = minOf(item.rect.bottom, rowBottom)
+            val overlapHeight = (overlapBottom - overlapTop).coerceAtLeast(0)
+
+            val minH = minOf(itemHeight, rowHeight)
+            val overlapRatio = overlapHeight.toFloat() / minH.toFloat()
+            val centerYDiff = kotlin.math.abs(itemCenterY - rowCenterY)
+            val maxAllowedDiff = (minH * 0.6f).coerceAtLeast(8f)
+
+            if (overlapRatio >= 0.35f || centerYDiff <= maxAllowedDiff) {
+                row.add(item)
+                placedInRow = true
+                break
+            }
+        }
+
+        if (!placedInRow) {
+            rows.add(mutableListOf(item))
+        }
+    }
+
+    rows.sortBy { row -> row.map { it.rect.centerY() }.average() }
+
+    val reconstructedLines = rows.map { row ->
+        row.sortBy { it.rect.left }
+        row.joinToString(" ") { it.text }
+    }
+
+    val reconstructedText = reconstructedLines.joinToString("\n")
+    android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_RECONSTRUCTED_TEXT:\n$reconstructedText")
+    return reconstructedText
+}
+
+private suspend fun processDocumentUri(context: Context, uri: Uri): String {
+    val contentResolver = context.contentResolver
+    val mimeType = (contentResolver.getType(uri) ?: "").lowercase(Locale.ROOT)
+    val fileName = (try {
+        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIdx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (nameIdx != -1 && cursor.moveToFirst()) cursor.getString(nameIdx) else null
+        }
+    } catch (e: Exception) { null } ?: uri.lastPathSegment ?: "").lowercase(Locale.ROOT)
+
+    val isPdf = mimeType.contains("pdf") || fileName.endsWith(".pdf")
+    val isImage = mimeType.startsWith("image/") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".png") || fileName.endsWith(".webp")
+
+    android.util.Log.d("REPORT_ANALYZER_DEBUG", "URI: $uri")
+    android.util.Log.d("REPORT_ANALYZER_DEBUG", "MIME TYPE: $mimeType")
+    android.util.Log.d("REPORT_ANALYZER_DEBUG", "FILE NAME: $fileName")
+
+    val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    val extractedTextBuilder = StringBuilder()
+    var extractionMethod = "UNKNOWN"
+
+    if (isPdf) {
+        extractionMethod = "PDF_RENDERER_HIGH_RES_OCR"
+        try {
+            val pfd = contentResolver.openFileDescriptor(uri, "r")
+            if (pfd != null) {
+                val pdfRenderer = PdfRenderer(pfd)
+                val pageCount = pdfRenderer.pageCount
+                val renderScale = 3.5f
+                for (i in 0 until pageCount) {
+                    val page = pdfRenderer.openPage(i)
+                    val width = (page.width * renderScale).toInt().coerceAtLeast(1)
+                    val height = (page.height * renderScale).toInt().coerceAtLeast(1)
+                    android.util.Log.d("REPORT_ANALYZER_DEBUG", "PDF_PAGE_INDEX: $i")
+                    android.util.Log.d("REPORT_ANALYZER_DEBUG", "PDF_RENDER_WIDTH: $width")
+                    android.util.Log.d("REPORT_ANALYZER_DEBUG", "PDF_RENDER_HEIGHT: $height")
+                    android.util.Log.d("REPORT_ANALYZER_DEBUG", "PDF_SCALE: $renderScale")
+
+                    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    val canvas = android.graphics.Canvas(bitmap)
+                    canvas.drawColor(android.graphics.Color.WHITE)
+                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    page.close()
+
+                    val inputImage = InputImage.fromBitmap(bitmap, 0)
+                    val result = recognizer.process(inputImage).awaitTask()
+                    val reconstructedPage = reconstructOcrTextFromVisionText(result)
+                    extractedTextBuilder.append(reconstructedPage).append("\n")
+                    bitmap.recycle()
+                }
+                pdfRenderer.close()
+                pfd.close()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("REPORT_ANALYZER_DEBUG", "REPORT_ANALYZER_DEBUG OCR_ERROR PDF rendering error", e)
+        }
+    } else if (isImage) {
+        extractionMethod = "IMAGE_EXIF_SOFTWARE_OCR"
+        try {
+            val rotationDegrees = try {
+                contentResolver.openInputStream(uri)?.use { stream ->
+                    val exif = android.media.ExifInterface(stream)
+                    when (exif.getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, android.media.ExifInterface.ORIENTATION_NORMAL)) {
+                        android.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90
+                        android.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                        android.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                        else -> 0
+                    }
+                } ?: 0
+            } catch (e: Exception) {
+                0
+            }
+
+            val bitmap = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                ImageDecoder.decodeBitmap(ImageDecoder.createSource(contentResolver, uri)) { decoder, _, _ ->
+                    decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                android.provider.MediaStore.Images.Media.getBitmap(contentResolver, uri)
+            }
+            if (bitmap != null) {
+                val inputImage = InputImage.fromBitmap(bitmap, rotationDegrees)
+                val result = recognizer.process(inputImage).awaitTask()
+                val reconstructedImage = reconstructOcrTextFromVisionText(result)
+                extractedTextBuilder.append(reconstructedImage)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("REPORT_ANALYZER_DEBUG", "REPORT_ANALYZER_DEBUG OCR_ERROR Primary Image OCR error", e)
+            try {
+                contentResolver.openInputStream(uri)?.use { stream ->
+                    val bitmap = BitmapFactory.decodeStream(stream)
+                    if (bitmap != null) {
+                        val inputImage = InputImage.fromBitmap(bitmap, 0)
+                        val result = recognizer.process(inputImage).awaitTask()
+                        val reconstructedImage = reconstructOcrTextFromVisionText(result)
+                        extractedTextBuilder.append(reconstructedImage)
+                    }
+                }
+            } catch (e2: Exception) {
+                android.util.Log.e("REPORT_ANALYZER_DEBUG", "REPORT_ANALYZER_DEBUG OCR_ERROR Fallback Image OCR error", e2)
+            }
+        }
+    } else {
+        extractionMethod = "TEXT_STREAM_FALLBACK"
+        try {
+            contentResolver.openInputStream(uri)?.use { stream ->
+                extractedTextBuilder.append(String(stream.readBytes(), java.nio.charset.StandardCharsets.UTF_8))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("REPORT_ANALYZER_DEBUG", "REPORT_ANALYZER_DEBUG OCR_ERROR Text stream error", e)
+        }
+    }
+
+    val rawText = extractedTextBuilder.toString()
+    val normalizedText = normalizeExtractedText(rawText)
+
+    android.util.Log.d("REPORT_ANALYZER_DEBUG", "EXTRACTION METHOD: $extractionMethod")
+    android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_RAW_TEXT_LENGTH: ${rawText.length}")
+    android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_RAW_TEXT: $rawText")
+    android.util.Log.d("REPORT_ANALYZER_DEBUG", "OCR_NORMALIZED_TEXT: $normalizedText")
+
+    return rawText
 }

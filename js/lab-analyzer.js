@@ -1,4 +1,5 @@
 // lab-analyzer.js - Core logic for HealLens Lab Report Analyzer
+// Exact Biomarker Extraction & Evaluation Engine (No Defaults, No Integer Rounding, Strict Separation)
 
 class LabAnalyzer {
   constructor() {
@@ -6,17 +7,32 @@ class LabAnalyzer {
     this.patientAge    = 30;
     this.patientGender = 'female'; // 'male' | 'female'
 
-    this.currentValues = {
-      glucose: 90,
-      cholesterol: 165,
-      triglycerides: 110,
-      hemoglobin: 14.5,
-      creatinine: 0.8,
-      ast: 24,
-      tsh: 2.1
+    // Active biomarker extraction state
+    this.biomarkers = {
+      glucose:       { key: 'glucose',       name: 'Blood Glucose (Sugar)',       unit: 'mg/dL',  val: null, isPresent: false, rawLine: '' },
+      cholesterol:   { key: 'cholesterol',   name: 'Total Cholesterol',           unit: 'mg/dL',  val: null, isPresent: false, rawLine: '' },
+      triglycerides: { key: 'triglycerides', name: 'Triglycerides',               unit: 'mg/dL',  val: null, isPresent: false, rawLine: '' },
+      hemoglobin:    { key: 'hemoglobin',    name: 'Hemoglobin (Hb)',            unit: 'g/dL',   val: null, isPresent: false, rawLine: '' },
+      creatinine:    { key: 'creatinine',    name: 'Serum Creatinine',            unit: 'mg/dL',  val: null, isPresent: false, rawLine: '' },
+      ast:           { key: 'ast',           name: 'AST (Liver Enzyme)',          unit: 'U/L',    val: null, isPresent: false, rawLine: '' },
+      tsh:           { key: 'tsh',           name: 'TSH (Thyroid Stimulating)',   unit: 'uIU/mL', val: null, isPresent: false, rawLine: '' }
     };
 
-    // Base biomarker reference ranges
+    // Values compatibility object
+    this.currentValues = {
+      glucose: null,
+      cholesterol: null,
+      triglycerides: null,
+      hemoglobin: null,
+      creatinine: null,
+      ast: null,
+      tsh: null
+    };
+
+    this.extractedCount = 0;
+    this.hasExtractionError = false;
+
+    // Base biomarker reference ranges (PRESERVED EXCLUSIVELY FOR EVALUATION)
     this.biomarkerBase = {
       glucose:       { min: 70,   max: 100,  unit: 'mg/dL',   step: 1,   minLimit: 40,   maxLimit: 300  },
       cholesterol:   { min: 120,  max: 200,  unit: 'mg/dL',   step: 5,   minLimit: 80,   maxLimit: 400  },
@@ -27,7 +43,7 @@ class LabAnalyzer {
       tsh:           { min: 0.4,  max: 4.5,  unit: 'uIU/mL',  step: 0.1, minLimit: 0.05, maxLimit: 15.0 }
     };
 
-    // Preset data for simulation templates
+    // Sample data for manual simulation button clicks ONLY
     this.samples = {
       healthy: {
         glucose: 85,
@@ -61,163 +77,31 @@ class LabAnalyzer {
     this.localizedDb = {
       en: {
         name_glucose: "Blood Glucose (Sugar)",
-        desc_glucose: "Fasting Blood Glucose measures sugar levels in the blood. High sugar indicates diabetes or prediabetes risk, while low sugar causes weakness and dizziness.",
-        ayur_glucose: "Nisha Amalaki (Turmeric + Amla) and Fenugreek (Methi) seeds daily to balance sugar and support insulin production.",
+        desc_glucose: "Blood Glucose measures sugar levels in the blood. Elevated levels indicate a result above the reference range, while lower levels indicate below-range values.",
         
         name_cholesterol: "Total Cholesterol",
-        desc_cholesterol: "Total Cholesterol is a key fat marker. Elevated levels can lead to fat buildup in arteries, increasing cardiovascular and blood pressure risks.",
-        ayur_cholesterol: "Lashuna (Garlic) extract, Arjuna bark powder, and Guggulu to clear fat blockages and support heart muscle health.",
+        desc_cholesterol: "Total Cholesterol measures lipid levels in blood. Higher levels reflect fat transport markers in the vascular system.",
         
         name_triglycerides: "Triglycerides",
-        desc_triglycerides: "Triglycerides are types of fat stored in your cells. High levels are linked to arterial hardening and pancreas strain.",
-        ayur_triglycerides: "Triphala powder taken with warm water at night, along with ginger tea to accelerate fat digestion and metabolic clearance.",
+        desc_triglycerides: "Triglycerides represent circulating storage fat. Values outside reference ranges reflect dietary and metabolic balance.",
         
         name_hemoglobin: "Hemoglobin (Hb)",
-        desc_hemoglobin: "Hemoglobin carries oxygen in red blood cells. Low levels indicate Anemia, leading to chronic fatigue, weakness, and pale skin.",
-        ayur_hemoglobin: "Dhatri Lauha, Lohasava (Ayurvedic iron tonic), and regular intake of pomegranate (Dadima) juice to boost blood count.",
+        desc_hemoglobin: "Hemoglobin carries oxygen in red blood cells. Lower values reflect reduced oxygen-carrying capacity in blood.",
         
         name_creatinine: "Serum Creatinine",
-        desc_creatinine: "Creatinine is a muscle waste product filtered by kidneys. High levels suggest renal strain or reduced kidney filtration capacity.",
-        ayur_creatinine: "Punarnava (Hogweed) decoction and Varuna tea as natural diuretics to flush waste and optimize glomerular filtration.",
+        desc_creatinine: "Creatinine is a muscle breakdown byproduct filtered by the kidneys. Elevated levels indicate values above expected renal filtration markers.",
         
         name_ast: "AST (Liver Enzyme)",
-        desc_ast: "AST is a liver enzyme released into the blood during liver stress. Elevated levels indicate hepatocyte strain or fatty liver changes.",
-        ayur_ast: "Bhumi Amla juice, Giloy stem extract, and Katuki root to protect liver cells, detoxify tissue, and regularize bile flow.",
+        desc_ast: "AST is a cellular enzyme present in liver and muscle tissue. Elevated levels indicate enzyme release above standard reference limits.",
         
         name_tsh: "TSH (Thyroid Stimulating Hormone)",
-        desc_tsh: "TSH controls thyroid hormone production. High TSH means your thyroid is underactive (Hypothyroidism), slowing down metabolism.",
-        ayur_tsh: "Kanchnar Guggulu, coriander seed water (Dhania water), and regular neck massage with warm sesame oil to balance thyroid gland.",
+        desc_tsh: "TSH regulates thyroid hormone output from the pituitary. Values outside range reflect pituitary-thyroid feedback signaling.",
 
-        // Risk profiles
-        risk_normal: "✅ All Biomarkers within Healthy Ranges. Maintain a balanced diet, stay hydrated, and continue regular exercise.",
-        risk_diab_anemia: "⚠️ Risk Profile: Diabetic Tendency & Mild Anemia. High glucose requires sugar control, while low hemoglobin suggests iron deficiency anemia.",
-        risk_lipid: "⚠️ Risk Profile: Hyperlipidemia & Cardiovascular Stress. High total cholesterol and triglycerides increase the risk of arterial plaque buildup.",
-        risk_liver_kidney: "⚠️ Risk Profile: Hepatorenal Stress. Slightly high liver enzymes and creatinine indicate systemic detoxification strain. Rest, hydrate, and avoid processed foods.",
-        risk_thyroid: "⚠️ Risk Profile: Underactive Thyroid (Hypothyroidism). Elevated TSH indicates metabolic slowdown. Consult a specialist for thyroid hormone levels.",
-        risk_generic_abnormal: "⚠️ Risk Profile: Isolated Biomarker Elevation. One or more values exceed typical clinical ranges. Monitor and review diet.",
-        
-        remedy_title_lbl: "Ingredient: ",
-        remedy_dose_lbl: "Dosage: "
-      },
-      hi: {
-        name_glucose: "ब्लड ग्लूकोज (शुगर)",
-        desc_glucose: "फास्टिंग ब्लड ग्लूकोज रक्त में शर्करा के स्तर को मापता है। उच्च शर्करा मधुमेह या प्रीडायबिटीज के जोखिम को दर्शाती है, जबकि कम शर्करा कमजोरी का कारण बनती है।",
-        ayur_glucose: "शुगर को संतुलित करने और इंसुलिन उत्पादन में सहायता के लिए रोजाना निशा आमलकी (हल्दी + आंवला) और मेथी दाने का सेवन करें।",
-        
-        name_cholesterol: "कुल कोलेस्ट्रॉल",
-        desc_cholesterol: "कुल कोलेस्ट्रॉल एक प्रमुख वसा मार्कर है। ऊंचा स्तर धमनियों में वसा जमा कर सकता है, जिससे हृदय और रक्तचाप के जोखिम बढ़ जाते हैं।",
-        ayur_cholesterol: "वसा रुकावटों को साफ करने और हृदय की मांसपेशियों के स्वास्थ्य का समर्थन करने के लिए लशुन (लहसुन) का अर्क, अर्जुन की छाल का पाउडर और गुग्गुलु।",
-        
-        name_triglycerides: "ट्राइग्लिसराइड्स",
-        desc_triglycerides: "ट्राइग्लिसराइड्स कोशिकाओं में संग्रहीत वसा के प्रकार हैं। उच्च स्तर धमनियों के सख्त होने और अग्न्याशय के खिंचाव से जुड़े हैं।",
-        ayur_triglycerides: "वसा पाचन और चयापचय निकासी में तेजी लाने के लिए रात में गर्म पानी के साथ त्रिफला चूर्ण, और अदरक की चाय लें।",
-        
-        name_hemoglobin: "हीमोग्लोबिन (Hb)",
-        desc_hemoglobin: "हीमोग्लोबिन लाल रक्त कोशिकाओं में ऑक्सीजन ले जाता है। कम स्तर एनीमिया का संकेत देता है, जिससे थकान, कमजोरी और पीली त्वचा होती है।",
-        ayur_hemoglobin: "रक्त कोशिकाओं को बढ़ावा देने के लिए धात्री लौह, लोहासाव (आयुर्वेदिक आयरन टॉनिक) और अनार (दाड़िम) के रस का नियमित सेवन करें।",
-        
-        name_creatinine: "सीरम क्रिएटिनिन",
-        desc_creatinine: "क्रिएटिनिन गुर्दे द्वारा फ़िल्टर किया गया मांसपेशियों का अपशिष्ट उत्पाद है। उच्च स्तर गुर्दे के तनाव या कम निस्पंदन क्षमता का सुझाव देता है।",
-        ayur_creatinine: "अपशिष्ट को बाहर निकालने और गुर्दे की कार्यप्रणाली को अनुकूलित करने के लिए प्राकृतिक मूत्रवर्धक के रूप में पुनर्नवा का काढ़ा और वरुणा की चाय।",
-        
-        name_ast: "एएसटी (लिवर एंजाइम)",
-        desc_ast: "एएसटी एक लिवर एंजाइम है जो लिवर के तनाव के दौरान रक्त में जारी होता है। बढ़ा हुआ स्तर लिवर कोशिकाओं के तनाव या फैटी लिवर के बदलाव को दर्शाता है।",
-        ayur_ast: "लिवर कोशिकाओं की रक्षा करने, ऊतकों को डिटॉक्स करने और पित्त प्रवाह को नियमित करने के लिए भूमि आंवला का रस, गिलोय का अर्क और कुटकी जड़।",
-        
-        name_tsh: "टीएसएच (थायरॉयड उत्तेजक हार्मोन)",
-        desc_tsh: "टीएसएच थायराइड हार्मोन उत्पादन को नियंत्रित करता है। उच्च टीएसएच का मतलब है कि आपका थायराइड कम सक्रिय (हाइपोथायरायडिज्म) है, जिससे चयापचय धीमा हो जाता है।",
-        ayur_tsh: "थायरॉयड ग्रंथि को संतुलित करने के लिए कांचनार गुग्गुलु, धनिया बीज का पानी और गर्म तिल के तेल से गले की नियमित मालिश करें।",
-
-        // Risk profiles
-        risk_normal: "✅ सभी बायोमार्कर स्वस्थ सीमाओं के भीतर हैं। संतुलित आहार बनाए रखें, हाइड्रेटेड रहें और नियमित व्यायाम जारी रखें।",
-        risk_diab_anemia: "⚠️ जोखिम प्रोफाइल: मधुमेह की प्रवृत्ति और हल्का एनीमिया। उच्च ग्लूकोज के लिए शुगर नियंत्रण की आवश्यकता होती है, जबकि कम हीमोग्लोबिन आयरन की कमी वाले एनीमिया का सुझाव देता है।",
-        risk_lipid: "⚠️ जोखिम प्रोफाइल: हाइपरलिपिडेमिया और कार्डियोवैस्कुलर तनाव। उच्च कुल कोलेस्ट्रॉल और ट्राइग्लिसराइड्स धमनियों में प्लाक के निर्माण के जोखिम को बढ़ाते हैं।",
-        risk_liver_kidney: "⚠️ जोखिम प्रोफाइल: हेपेटोरेनल तनाव। थोड़ा बढ़ा हुआ लिवर एंजाइम और क्रिएटिनिन प्रणालीगत विषहरण तनाव का संकेत देते हैं। आराम करें, पानी पिएं और प्रसंस्कृत खाद्य पदार्थों से बचें।",
-        risk_thyroid: "⚠️ जोखिम प्रोफाइल: निष्क्रिय थायरॉयड (हाइपोथायरायडिज्म)। बढ़ा हुआ टीएसएच चयापचय मंदी का संकेत देता है। हार्मोन के स्तर के लिए विशेषज्ञ से सलाह लें।",
-        risk_generic_abnormal: "⚠️ जोखिम प्रोफाइल: असामान्य बायोमार्कर स्तर। एक या अधिक मान सामान्य नैदानिक सीमाओं से अधिक हैं। आहार की निगरानी और समीक्षा करें।",
-        
-        remedy_title_lbl: "सामग्री: ",
-        remedy_dose_lbl: "खुराक: "
-      },
-      ta: {
-        name_glucose: "இரத்த குளுக்கோஸ் (சர்க்கரை)",
-        desc_glucose: "வெறும் வயிற்றில் இரத்த குளுக்கோஸ் அளவு சர்க்கரையின் அளவை அளவிடுகிறது. அதிக சர்க்கரை நீரிழிவு ஆபத்தை குறிக்கிறது, குறைந்த சர்க்கரை பலவீனத்தை ஏற்படுத்துகிறது.",
-        ayur_glucose: "சர்க்கரையை சமநிலைப்படுத்தவும் இன்சுலின் உற்பத்தியை அதிகரிக்கவும் தினமும் நிஷா ஆமலகி (மஞ்சள் + நெல்லிக்காய்) மற்றும் வெந்தயம் உட்கொள்ளவும்.",
-        
-        name_cholesterol: "மொத்த கொலஸ்ட்ரால்",
-        desc_cholesterol: "மொத்த கொலஸ்ட்ரால் என்பது ஒரு முக்கிய கொழுப்பு காரணியாகும். அதிக அளவு கொழுப்பு இரத்த நாளங்களில் படிந்து, இதய நோய்களை அதிகரிக்கும்.",
-        ayur_cholesterol: "கொழுப்பு அடைப்புகளை நீக்கி, இதய தசைகளின் ஆரோக்கியத்தை ஆதரிக்க லசுனா (பூண்டு) சாறு, அர்ஜுனா பட்டை பொடி மற்றும் குக்குலு.",
-        
-        name_triglycerides: "ட்ரைகிளிசரைடுகள்",
-        desc_triglycerides: "ட்ரைகிளிசரைடுகள் செல்களில் சேமிக்கப்படும் கொழுப்பு வகையாகும். அதிக அளவு தமனிகளின் கடினத்தன்மை மற்றும் கணைய அழுத்தத்துடன் தொடர்புடையது.",
-        ayur_triglycerides: "கொழுப்பு செரிமானம் மற்றும் வளர்சிதை மாற்றத்தை விரைவுபடுத்த இரவில் வெதுவெதுப்பான நீருடன் திரிபலா பொடி, மற்றும் இஞ்சி தேநீர் உட்கொள்ளவும்.",
-        
-        name_hemoglobin: "ஹீமோகுளோபின் (Hb)",
-        desc_hemoglobin: "ஹீமோகுளோபின் இரத்த அணுக்களில் ஆக்ஸிஜனைக் கொண்டு செல்கிறது. குறைந்த அளவு இரத்த சோகையை (Anemia) குறிக்கிறது, இது சோர்வு மற்றும் பலவீனத்தை ஏற்படுத்தும்.",
-        ayur_hemoglobin: "இரத்த அணுக்களை அதிகரிக்க தாத்ரி லௌஹா, லோஹாசவா (ஆயுர்வேத இரும்பு டானிக்) மற்றும் மாதுளை சாறு தொடர்ந்து பருகவும்.",
-        
-        name_creatinine: "சீரம் கிரியேட்டினின்",
-        desc_creatinine: "கிரியேட்டினின் என்பது சிறுநீரகங்களால் வடிகட்டப்படும் தசை கழிவுப்பொருள். அதிக அளவு சிறுநீரக அழுத்தம் அல்லது வடிகட்டுதல் திறன் குறைவதைக் குறிக்கிறது.",
-        ayur_creatinine: "கழிவுகளை வெளியேற்றவும் சிறுநீரக செயல்பாட்டை மேம்படுத்தவும் இயற்கை சிறுநீரிறக்கியாக புனர்னவா கஷாயம் மற்றும் வருணா தேநீர் குடிக்கவும்.",
-        
-        name_ast: "AST (கல்லீரல் என்சைம்)",
-        desc_ast: "AST என்பது கல்லீரல் அழுத்தத்தின் போது இரத்தத்தில் வெளியிடப்படும் ஒரு என்சைம் ஆகும். அதிக அளவு கல்லீரல் செல்கள் அழுத்தத்தை அல்லது கொழுப்பு கல்லீரல் மாற்றங்களைக் குறிக்கிறது.",
-        ayur_ast: "கல்லீரல் செல்களைப் பாதுகாக்கவும், பித்த ஓட்டத்தை சீராக்கவும் பூமி நெல்லி சாறு, சீந்தில் தண்டு சாறு மற்றும் கடுகு ரோகிணி வேர்.",
-        
-        name_tsh: "TSH (தைராய்டு தூண்டுதல் ஹார்மோன்)",
-        desc_tsh: "TSH தைராய்டு ஹார்மோன் உற்பத்தியைக் கட்டுப்படுத்துகிறது. அதிக TSH என்பது தைராய்டு சுரப்பி குறைவாக வேலை செய்கிறது (Hypothyroidism) என்பதாகும், இது வளர்சிதை மாற்றத்தை குறைக்கும்.",
-        ayur_tsh: "தைராய்டு சுரப்பியை சமநிலைப்படுத்த காஞ்சனார குக்குலு, கொத்தமல்லி விதை தண்ணீர் மற்றும் வெதுவெதுப்பான நல்லெண்ணெய் கொண்டு கழுத்தில் மசாஜ் செய்யவும்.",
-
-        // Risk profiles
-        risk_normal: "✅ அனைத்து பயோமார்க்கர்களும் ஆரோக்கியமான வரம்புகளுக்குள் உள்ளன. சமச்சீர் உணவைப் பேணுங்கள், போதுமான அளவு தண்ணீர் குடியுங்கள் மற்றும் உடற்பயிற்சி செய்யுங்கள்.",
-        risk_diab_anemia: "⚠️ சுகாதார அபாயம்: நீரிழிவு போக்கு & லேசான இரத்த சோகை. அதிக குளுக்கோஸுக்கு சர்க்கரை கட்டுப்பாடு தேவைப்படுகிறது, குறைந்த ஹீமோகுளோபின் இரும்புச்சத்து குறைபாடு இரத்த சோகையை குறிக்கிறது.",
-        risk_lipid: "⚠️ சுகாதார அபாயம்: ஹைப்பர்லிபிடெமியா & இருதய அழுத்தம். அதிக மொத்த கொலஸ்ட்ரால் மற்றும் ட்ரைகிளிசரைடுகள் இரத்த நாள அடைப்பு அபாயத்தை அதிகரிக்கும்.",
-        risk_liver_kidney: "⚠️ சுகாதார அபாயம்: கல்லீரல் & சிறுநீரக அழுத்தம். சற்று உயர்ந்த கல்லீரல் என்சைம்கள் மற்றும் கிரியேட்டினின் கழிவு வெளியேற்ற அழுத்தத்தைக் குறிக்கின்றன. ஓய்வெடுக்கவும், தண்ணீர் பருகவும்.",
-        risk_thyroid: "⚠️ சுகாதார அபாயம்: தைராய்டு குறைபாடு (Hypothyroidism). உயர்ந்த TSH வளர்சிதை மாற்ற மந்தநிலையைக் குறிக்கிறது. ஹார்மோன் அளவுகளுக்கு மருத்துவரை அணுகவும்.",
-        risk_generic_abnormal: "⚠️ சுகாதார அபாயம்: அசாதாரண பயோமார்க்கர் அளவுகள். ஒன்று அல்லது அதற்கு மேற்பட்ட அளவுகள் சாதாரண வரம்பை விட அதிகமாக உள்ளன. உணவை கண்காணித்து மாற்றியமைக்கவும்.",
-        
-        remedy_title_lbl: "தேவையானவை: ",
-        remedy_dose_lbl: "அளவு: "
-      },
-      kn: {
-        name_glucose: "ರಕ್ತದ ಗ್ಲುಕೋಸ್ (ಸಕ್ಕರೆ)",
-        desc_glucose: "ಖಾಲಿ ಹೊಟ್ಟೆಯಲ್ಲಿ ರಕ್ತದ ಗ್ಲುಕೋಸ್ ಪ್ರಮಾಣ ಸಕ್ಕರೆಯ ಮಟ್ಟವನ್ನು ಅಳೆಯುತ್ತದೆ. ಹೆಚ್ಚಿನ ಸಕ್ಕರೆ ಮಧುಮೇಹದ ಅಪಾಯವನ್ನು ಸೂಚಿಸುತ್ತದೆ, ಕಡಿಮೆ ಸಕ್ಕರೆ ದೌರ್ಬಲ್ಯವನ್ನು ಉಂಟುಮಾಡುತ್ತದೆ.",
-        ayur_glucose: "ಸಕ್ಕರೆಯನ್ನು ಸಮತೋಲನಗೊಳಿಸಲು ಮತ್ತು ಇನ್ಸುಲಿನ್ ಉತ್ಪಾದನೆಯನ್ನು ಬೆಂಬಲಿಸಲು ಪ್ರತಿದಿನ ನಿಶಾ ಆಮಲಕಿ (ಅರಿಶಿನ + ನೆಲ್ಲಿಕಾಯಿ) ಮತ್ತು ಮೆಂತೆ ಬೀಜಗಳನ್ನು ಸೇವಿಸಿ.",
-        
-        name_cholesterol: "ಒಟ್ಟು ಕೊಲೆಸ್ಟ್ರಾಲ್",
-        desc_cholesterol: "ಒಟ್ಟು ಕೊಲೆಸ್ಟ್ರಾಲ್ ಪ್ರಮುಖ ಕೊಬ್ಬಿನ ಸೂಚಕವಾಗಿದೆ. ಹೆಚ್ಚಿನ ಮಟ್ಟವು ಅಪಧಮನಿಗಳಲ್ಲಿ ಕೊಬ್ಬು ಶೇಖರಣೆಗೆ ಕಾರಣವಾಗಿ, ಹೃದಯ ಕಾಯಿಲೆಯ ಅಪಾಯವನ್ನು ಹೆಚ್ಚಿಸುತ್ತದೆ.",
-        ayur_cholesterol: "ಕೊಬ್ಬಿನ ಅಡೆತಡೆಗಳನ್ನು ನಿವಾರಿಸಲು ಮತ್ತು ಹೃದಯ ಸ್ನಾಯುಗಳ ಆರೋಗ್ಯವನ್ನು ಬೆಂಬಲಿಸಲು ಲಶುನ (ಬೆಳ್ಳುಳ್ಳಿ) ಸಾರ, ಅರ್ಜುನ ತೊಗಟೆ ಪುಡಿ ಮತ್ತು ಗುಗ್ಗುಲು.",
-        
-        name_triglycerides: "ಟ್ರೈಗ್ಲಿಸರೈಡ್‌ಗಳು",
-        desc_triglycerides: "ಟ್ರೈಗ್ಲಿಸರೈಡ್‌ಗಳು ಜೀವಕೋಶಗಳಲ್ಲಿ ಸಂಗ್ರಹವಾಗಿರುವ ಕೊಬ್ಬಿನ ವಿಧಗಳಾಗಿವೆ. ಹೆಚ್ಚಿನ ಮಟ್ಟವು ಅಪಧಮನಿಗಳ ಗಡಸುತನ ಮತ್ತು ಮೇದೋಜ್ಜೀರಕ ಗ್ರಂಥಿಯ ಒತ್ತಡಕ್ಕೆ ಸಂಬಂಧಿಸಿದೆ.",
-        ayur_triglycerides: "ಕೊಬ್ಬಿನ ಜೀರ್ಣಕ್ರಿಯೆ ಮತ್ತು ಚಯಾಪಚಯ ಕ್ರಿಯೆಯನ್ನು ವೇಗಗೊಳಿಸಲು ರಾತ್ರಿ ಬೆಚ್ಚಗಿನ ನೀರಿನೊಂದಿಗೆ ತ್ರಿಫಲಾ ಚೂರ್ಣ ಮತ್ತು ಶುಂಠಿ ಚಹಾವನ್ನು ಸೇವಿಸಿ.",
-        
-        name_hemoglobin: "ಹಿಮೋಗ್ಲೋಬಿನ್ (Hb)",
-        desc_hemoglobin: "ಹಿಮೋಗ್ಲೋಬಿನ್ ರಕ್ತಕಣಗಳಲ್ಲಿ ಆಮ್ಲಜನಕವನ್ನು ಒಯ್ಯುತ್ತದೆ. ಕಡಿಮೆ ಮಟ್ಟವು ರಕ್ತಹೀನತೆಯನ್ನು (Anemia) ಸೂಚಿಸುತ್ತದೆ, ಇದು ದೀರ್ಘಕಾಲದ ಆಯಾಸ ಮತ್ತು ದೌರ್ಬಲ್ಯಕ್ಕೆ ಕಾರಣವಾಗುತ್ತದೆ.",
-        ayur_hemoglobin: "ರಕ್ತಕಣಗಳನ್ನು ಹೆಚ್ಚಿಸಲು ಧಾತ್ರಿ ಲೌಹಾ, ಲೋಹಾಸವ (ಆಯುರ್ವೇದ ಐರನ್ ಟಾನಿಕ್) ಮತ್ತು ದಾಳಿಂಬೆ ರಸವನ್ನು ನಿಯಮಿತವಾಗಿ ಸೇವಿಸಿ.",
-        
-        name_creatinine: "ಸೀರಮ್ ಕ್ರಿಯೇಟಿನೈನ್",
-        desc_creatinine: "ಕ್ರಿಯೇಟಿನೈನ್ ಮೂತ್ರಪಿಂಡಗಳಿಂದ ಫಿಲ್ಟರ್ ಮಾಡಲ್ಪಟ್ಟ ಮಾಂಸಖಂಡಗಳ ತ್ಯಾಜ್ಯ ಉತ್ಪನ್ನವಾಗಿದೆ. ಹೆಚ್ಚಿನ ಮಟ್ಟವು ಮೂತ್ರಪಿಂಡದ ಒತ್ತಡ ಅಥವಾ ಶೋಧನೆ ಸಾಮರ್ಥ್ಯ ಇಳಿಕೆಯನ್ನು ಸೂಚಿಸುತ್ತದೆ.",
-        ayur_creatinine: "ತ್ಯಾಜ್ಯವನ್ನು ಹೊರಹಾಕಲು ಮತ್ತು ಮೂತ್ರಪಿಂಡದ ಕಾರ್ಯವನ್ನು ಅತ್ಯುತ್ತಮಗೊಳಿಸಲು ನೈಸರ್ಗಿಕ ಮೂತ್ರವರ್ಧಕವಾಗಿ ಪುನರ್ನವಾ ಕಷಾಯ ಮತ್ತು ವರುಣಾ ಚಹಾವನ್ನು ಕುಡಿಯಿರಿ.",
-        
-        name_ast: "AST (ಯಕೃತ್ತಿನ ಕಿಣ್ವ)",
-        desc_ast: "AST ಯಕೃತ್ತಿನ ಒತ್ತಡದ ಸಮಯದಲ್ಲಿ ರಕ್ತದಲ್ಲಿ ಬಿಡುಗಡೆಯಾಗುವ ಕಿಣ್ವವಾಗಿದೆ. ಹೆಚ್ಚಿನ ಮಟ್ಟವು ಯಕೃತ್ತಿನ ಜೀವಕೋಶಗಳ ಒತ್ತಡ ಅಥವಾ ಕೊಬ್ಬಿನ ಯಕೃತ್ತಿನ ಬದಲಾವಣೆಗಳನ್ನು ಸೂಚಿಸುತ್ತದೆ.",
-        ayur_ast: "ಯಕೃತ್ತಿನ ಜೀವಕೋಶಗಳನ್ನು ರಕ್ಷಿಸಲು ಮತ್ತು ಪಿತ್ತರಸದ ಹರಿವನ್ನು ನಿಯಂತ್ರಿಸಲು ಭೂಮಿ ನೆಲ್ಲಿಕಾಯಿ ರಸ, ಗಿಲೋಯ್ ಸಾರ ಮತ್ತು ಕಟುಕಿ ಬೇರು.",
-        
-        name_tsh: "TSH (ಥೈರಾಯ್ಡ್ ಉತ್ತೇಜಿಸುವ ಹಾರ್ಮೋನ್)",
-        desc_tsh: "TSH ಥೈರಾಯ್ಡ್ ಹಾರ್ಮೋನ್ ಉತ್ಪಾದನೆಯನ್ನು ನಿಯಂತ್ರಿಸುತ್ತದೆ. ಹೆಚ್ಚಿನ TSH ಎಂದರೆ ನಿಮ್ಮ ಥೈರಾಯ್ಡ್ ಗ್ರಂಥಿ ಕಡಿಮೆ ಸಕ್ರಿಯವಾಗಿದೆ (Hypothyroidism) ಎಂದರ್ಥ, ಇದು ಚಯಾಪಚಯವನ್ನು ನಿಧಾನಗೊಳಿಸುತ್ತದೆ.",
-        ayur_tsh: "ಥೈರಾಯ್ಡ್ ಗ್ರಂಥಿಯನ್ನು ಸಮತೋಲನಗೊಳಿಸಲು ಕಾಂಚನಾರ ಗುಗ್ಗುಲು, ಕೊತ್ತಂಬರಿ ಬೀಜದ ನೀರು ಮತ್ತು ಬೆಚ್ಚಗಿನ ಎಳ್ಳೆಣ್ಣೆಯಿಂದ ಕುತ್ತಿಗೆಗೆ ಮಸಾಜ್ ಮಾಡಿ.",
-
-        // Risk profiles
-        risk_normal: "✅ ಎಲ್ಲಾ ಬಯೋಮಾರ್ಕರ್‌ಗಳು ಆರೋಗ್ಯಕರ ಮಿತಿಗಳಲ್ಲಿವೆ. ಸಮತೋಲಿತ ಆಹಾರವನ್ನು ಕಾಪಾಡಿಕೊಳ್ಳಿ, ಸಾಕಷ್ಟು ನೀರು ಕುಡಿಯಿರಿ ಮತ್ತು ನಿಯಮಿತವಾಗಿ ವ್ಯಾಯಾಮ ಮಾಡಿ.",
-        risk_diab_anemia: "⚠️ ಆರೋಗ್ಯದ ಅಪಾಯ: ಮಧುಮೇಹದ ಪ್ರವೃತ್ತಿ ಮತ್ತು ಸೌಮ್ಯ ರಕ್ತಹೀನತೆ. ಹೆಚ್ಚಿನ ಗ್ಲುಕೋಸ್‌ಗೆ ಸಕ್ಕರೆ ನಿಯಂತ್ರಣದ ಅಗತ್ಯವಿರುತ್ತದೆ, ಕಡಿಮೆ ಹಿಮೋಗ್ಲೋಬಿನ್ ರಕ್ತಹೀನತೆಯನ್ನು ಸೂಚಿಸುತ್ತದೆ.",
-        risk_lipid: "⚠️ ಆರೋಗ್ಯದ ಅಪಾಯ: ಹೈಪರ್ಲಿಪಿಡೆಮಿಯಾ ಮತ್ತು ಹೃದಯದ ಒತ್ತಡ. ಹೆಚ್ಚಿನ ಒಟ್ಟು ಕೊಲೆಸ್ಟ್ರಾಲ್ ಮತ್ತು ಟ್ರೈಗ್ಲಿಸರೈಡ್‌ಗಳು ಅಪಧಮನಿಗಳಲ್ಲಿ ಕೊಬ್ಬಿನ ಶೇಖರಣೆಯ ಅಪಾಯವನ್ನು ಹೆಚ್ಚಿಸುತ್ತವೆ.",
-        risk_liver_kidney: "⚠️ ಆರೋಗ್ಯದ ಅಪಾಯ: ಯಕೃತ್ತು ಮತ್ತು ಮೂತ್ರಪಿಂಡದ ಒತ್ತಡ. ಸ್ವಲ್ಪ ಹೆಚ್ಚಿನ ಯಕೃತ್ತಿನ ಕಿಣ್ವಗಳು ಮತ್ತು ಕ್ರಿಯೇಟಿನೈನ್ ದೇಹದ ತ್ಯಾಜ್ಯ ವಿಲೇವಾರಿ ಒತ್ತಡವನ್ನು ಸೂಚಿಸುತ್ತವೆ. ವಿಶ್ರಾಂತಿ ಪಡೆಯಿರಿ, ನೀರು ಕುಡಿಯಿರಿ.",
-        risk_thyroid: "⚠️ ಆರೋಗ್ಯದ ಅಪಾಯ: ಥೈರಾಯ್ಡ್ ಕೊರತೆ (Hypothyroidism). ಹೆಚ್ಚಿನ TSH ಚಯಾಪಚಯ ಮಂದಗತಿಯನ್ನು ಸೂಚಿಸುತ್ತದೆ. ಹಾರ್ಮೋನ್ ಮಟ್ಟಗಳಿಗಾಗಿ ವೈದ್ಯರನ್ನು ಸಂಪರ್ಕಿಸಿ.",
-        risk_generic_abnormal: "⚠️ ಆರೋಗ್ಯದ ಅಪಾಯ: ಅಸಹಜ ಬಯೋಮಾರ್ಕರ್ ಮಟ್ಟಗಳು. ಒಂದು ಅಥವಾ ಹೆಚ್ಚಿನ ಮೌಲ್ಯಗಳು ಸಾಮಾನ್ಯ ಮಿತಿಗಿಂತ ಹೆಚ್ಚಿವೆ. ಆಹಾರಕ್ರಮವನ್ನು ಗಮನಿಸಿ.",
-        
-        remedy_title_lbl: "ಪದಾರ್ಥಗಳು: ",
-        remedy_dose_lbl: "ಪ್ರಮಾಣ: "
+        statusNormal: "Normal",
+        statusLow: "Low",
+        statusHigh: "High",
+        statusCritical: "Critical",
+        normalRange: "Reference range"
       }
     };
   }
@@ -226,18 +110,31 @@ class LabAnalyzer {
     return JSON.parse(JSON.stringify(this.biomarkerBase));
   }
 
+  resetBiomarkerState() {
+    Object.keys(this.biomarkers).forEach(key => {
+      this.biomarkers[key].val = null;
+      this.biomarkers[key].isPresent = false;
+      this.biomarkers[key].rawLine = '';
+      this.currentValues[key] = null;
+    });
+    this.extractedCount = 0;
+    this.hasExtractionError = false;
+  }
+
   init() {
     this.setupUploadHandlers();
     this.renderInputs();
     this.setupButtons();
-    this.analyze();
+
+    const resultCard = document.getElementById("lab-result-card");
+    if (resultCard) resultCard.style.display = "none";
   }
 
   resetOrRender() {
+    this.resetBiomarkerState();
     this.renderInputs();
-    this.analyze();
-    // Hide results panel if reset
-    document.getElementById("lab-result-card").style.display = "none";
+    const resultCard = document.getElementById("lab-result-card");
+    if (resultCard) resultCard.style.display = "none";
   }
 
   getTranslation(key) {
@@ -257,7 +154,7 @@ class LabAnalyzer {
 
     fileInput.addEventListener("change", (e) => {
       if (e.target.files.length > 0) {
-        this.startSimulatedScan();
+        this.processUploadedFile(e.target.files[0]);
       }
     });
 
@@ -274,46 +171,469 @@ class LabAnalyzer {
       e.preventDefault();
       dropzone.classList.remove("drag-over");
       if (e.dataTransfer.files.length > 0) {
-        this.startSimulatedScan();
+        this.processUploadedFile(e.dataTransfer.files[0]);
       }
     });
   }
 
-  startSimulatedScan() {
+  async processUploadedFile(file) {
     const dropzone = document.getElementById("lab-upload-area");
     const scanningArea = document.getElementById("lab-scanning-area");
     const subtext = document.getElementById("lab-analyzing-subtext");
 
-    if (!dropzone || !scanningArea) return;
+    if (dropzone) dropzone.style.display = "none";
+    if (scanningArea) scanningArea.style.display = "block";
 
-    dropzone.style.display = "none";
-    scanningArea.style.display = "block";
+    // Reset state before every extraction
+    this.resetBiomarkerState();
 
-    const steps = [
-      "Preprocessing document & adjusting contrast...",
-      "Running AI text boundary segmentations...",
-      "Extracting biomarker values via neural OCR...",
-      "Validating units and ranges with laboratory database...",
-      "Finalizing extraction metrics..."
+    console.log("[LabAnalyzer Debug] FILE NAME:", file.name);
+    console.log("[LabAnalyzer Debug] FILE SIZE:", file.size, "bytes");
+    console.log("[LabAnalyzer Debug] FILE TYPE:", file.type);
+
+    if (subtext) subtext.innerText = "Preprocessing document & extracting text...";
+
+    try {
+      let rawExtractedText = "";
+
+      if (file.type.includes("text") || file.name.endsWith(".txt") || file.name.endsWith(".csv")) {
+        rawExtractedText = await file.text();
+      } else if (file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf")) {
+        if (subtext) subtext.innerText = "Parsing PDF document with PDF.js engine...";
+        rawExtractedText = await this.extractPdfTextWithPdfJs(file);
+      } else {
+        if (subtext) subtext.innerText = "Running neural OCR on uploaded document...";
+        if (typeof Tesseract === "undefined") {
+          await this.loadTesseractScript();
+        }
+
+        if (typeof Tesseract !== "undefined") {
+          const worker = await Tesseract.createWorker("eng");
+          const ret = await worker.recognize(file);
+          rawExtractedText = ret.data.text;
+          await worker.terminate();
+        } else {
+          throw new Error("OCR engine unavailable.");
+        }
+      }
+
+      console.log("[LabAnalyzer Debug] RAW EXTRACTED TEXT LENGTH:", rawExtractedText.length);
+      console.log("[LabAnalyzer Debug] RAW EXTRACTED TEXT:\n", rawExtractedText);
+
+      const normalizedText = this.normalizeExtractedText(rawExtractedText);
+      console.log("[LabAnalyzer Debug] NORMALIZED TEXT LENGTH:", normalizedText.length);
+      console.log("[LabAnalyzer Debug] NORMALIZED TEXT:\n", normalizedText);
+
+      if (subtext) subtext.innerText = "Validating extracted biomarkers & laboratory metrics...";
+      await new Promise(r => setTimeout(r, 400));
+
+      const count = this.extractBiomarkersFromText(normalizedText);
+
+      console.log("[LabAnalyzer Debug] EXTRACTED BIOMARKERS:", JSON.parse(JSON.stringify(this.currentValues)));
+      console.log("[LabAnalyzer Debug] EXTRACTED BIOMARKER COUNT:", count);
+
+      if (scanningArea) scanningArea.style.display = "none";
+      if (dropzone) dropzone.style.display = "flex";
+
+      if (count === 0) {
+        this.renderInsufficientDataNotice();
+      } else {
+        this.renderInputs();
+        this.analyze();
+        this.saveCurrentReportToHistory();
+
+        const resultCard = document.getElementById("lab-result-card");
+        if (resultCard) {
+          resultCard.style.display = "block";
+          resultCard.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+
+    } catch (err) {
+      console.warn("[LabAnalyzer] File extraction notice:", err);
+      if (scanningArea) scanningArea.style.display = "none";
+      if (dropzone) dropzone.style.display = "flex";
+      this.renderInsufficientDataNotice();
+    }
+  }
+
+  loadPdfJsScript() {
+    return new Promise((resolve, reject) => {
+      if (typeof window.pdfjsLib !== "undefined") {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+        return resolve();
+      }
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
+      script.onload = () => {
+        if (typeof window.pdfjsLib !== "undefined") {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+        }
+        resolve();
+      };
+      script.onerror = () => reject(new Error("Failed to load PDF.js script"));
+      document.head.appendChild(script);
+    });
+  }
+
+  async extractPdfTextWithPdfJs(file) {
+    console.log("[LabAnalyzer Debug] PDF EXTRACTION STARTED");
+    await this.loadPdfJsScript();
+
+    if (typeof window.pdfjsLib === "undefined") {
+      const arrayBuffer = await file.arrayBuffer();
+      return this.extractPdfTextDirect(arrayBuffer);
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+
+    console.log("[LabAnalyzer Debug] PDF PAGE COUNT:", pdf.numPages);
+
+    let combinedText = "";
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      let pageText = "";
+      let lastY = null;
+      for (const item of textContent.items) {
+        if (!item || !item.str) continue;
+        const currentY = item.transform ? item.transform[5] : null;
+        if (lastY !== null && currentY !== null && Math.abs(currentY - lastY) > 5) {
+          pageText += "\n";
+        } else if (item.hasEOL) {
+          pageText += "\n";
+        } else if (pageText.length > 0 && !pageText.endsWith("\n") && !pageText.endsWith(" ")) {
+          pageText += " ";
+        }
+        pageText += item.str;
+        if (currentY !== null) lastY = currentY;
+      }
+
+      console.log(`[LabAnalyzer Debug] PAGE ${pageNum} TEXT LENGTH:`, pageText.length);
+      combinedText += pageText + "\n";
+    }
+
+    console.log("[LabAnalyzer Debug] COMBINED PDF TEXT LENGTH:", combinedText.trim().length);
+
+    if (combinedText.trim().length < 10) {
+      console.log("[LabAnalyzer Debug] OCR FALLBACK USED: YES (Scanned Image PDF)");
+      combinedText = "";
+
+      if (typeof Tesseract === "undefined") {
+        await this.loadTesseractScript();
+      }
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 2.0 });
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+        if (typeof Tesseract !== "undefined") {
+          const worker = await Tesseract.createWorker("eng");
+          const ret = await worker.recognize(canvas);
+          const ocrPageText = ret.data.text || "";
+          console.log(`[LabAnalyzer Debug] PAGE ${pageNum} OCR TEXT LENGTH:`, ocrPageText.length);
+          combinedText += ocrPageText + "\n";
+          await worker.terminate();
+        }
+      }
+    } else {
+      console.log("[LabAnalyzer Debug] OCR FALLBACK USED: NO (Digital PDF)");
+    }
+
+    return combinedText;
+  }
+
+  extractPdfTextDirect(arrayBuffer) {
+    try {
+      const bytes = new Uint8Array(arrayBuffer);
+      let content = "";
+      for (let i = 0; i < bytes.length; i++) {
+        content += String.fromCharCode(bytes[i]);
+      }
+
+      const textChunks = [];
+      let i = 0;
+      const n = content.length;
+
+      while (i < n) {
+        if (content[i] === '(') {
+          i++;
+          let depth = 1;
+          const chunk = [];
+          while (i < n && depth > 0) {
+            const c = content[i];
+            if (c === '\\' && i + 1 < n) {
+              chunk.push(content[i + 1]);
+              i += 2;
+              continue;
+            } else if (c === '(') {
+              depth++;
+              chunk.push('(');
+            } else if (c === ')') {
+              depth--;
+              if (depth > 0) chunk.push(')');
+            } else {
+              chunk.push(c);
+            }
+            i++;
+          }
+          if (depth === 0) {
+            const s = chunk.join("").trim();
+            if (s.length > 0) {
+              textChunks.push(s);
+            }
+          }
+        } else {
+          i++;
+        }
+      }
+
+      return textChunks.join("\n");
+    } catch (e) {
+      console.warn("[LabAnalyzer] Direct PDF text extraction error:", e);
+      return "";
+    }
+  }
+
+  normalizeExtractedText(rawText) {
+    if (!rawText || typeof rawText !== "string") return "";
+
+    let text = rawText;
+
+    text = text.replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000]/g, " ");
+    text = text.replace(/\s*[:=–—]\s*/g, " : ");
+    text = text.replace(/\.{2,}/g, " ");
+
+    text = text.replace(/mg\s*\/\s*dL/gi, "mg/dL");
+    text = text.replace(/g\s*\/\s*dL/gi, "g/dL");
+    text = text.replace(/uIU\s*\/\s*mL/gi, "uIU/mL");
+    text = text.replace(/µIU\s*\/\s*mL/gi, "uIU/mL");
+    text = text.replace(/U\s*\/\s*L/gi, "U/L");
+
+    const testKeywords = [
+      "Blood Glucose", "Fasting Glucose", "Random Glucose", "Fasting Blood Sugar", "Random Blood Sugar",
+      "Total Cholesterol", "Serum Cholesterol", "Triglycerides", "Serum Triglycerides",
+      "Hemoglobin", "Haemoglobin", "Serum Creatinine", "AST", "SGOT", "TSH", "Thyroid Stimulating"
     ];
 
-    let currentStep = 0;
-    const interval = setInterval(() => {
-      if (subtext) subtext.innerText = steps[currentStep];
-      currentStep++;
-      if (currentStep >= steps.length) {
-        clearInterval(interval);
-        
-        // Randomly load a template to simulate scanning
-        const templates = ["healthy", "lipid", "diabetic"];
-        const chosen = templates[Math.floor(Math.random() * templates.length)];
-        this.loadSample(chosen);
-        
-        // Restore upload zone and hide scanner
-        scanningArea.style.display = "none";
-        dropzone.style.display = "flex";
+    for (const kw of testKeywords) {
+      const reKw = new RegExp(`([^\\n])\\s*(${kw})`, "gi");
+      text = text.replace(reKw, "$1\n$2");
+    }
+
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    return lines.join("\n");
+  }
+
+  loadTesseractScript() {
+    return new Promise((resolve, reject) => {
+      if (typeof Tesseract !== "undefined") return resolve();
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load Tesseract.js"));
+      document.head.appendChild(script);
+    });
+  }
+
+  extractBiomarkersFromText(rawText) {
+    this.resetBiomarkerState();
+
+    if (!rawText || typeof rawText !== "string" || rawText.trim().length === 0) {
+      return 0;
+    }
+
+    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+    const rules = [
+      {
+        key: 'glucose',
+        aliases: [
+          /fasting\s+blood\s+sugar/i,
+          /random\s+blood\s+sugar/i,
+          /fasting\s+blood\s+glucose/i,
+          /random\s+blood\s+glucose/i,
+          /blood\s+glucose/i,
+          /fasting\s+glucose/i,
+          /random\s+glucose/i,
+          /blood\s+sugar/i,
+          /\bfbs\b/i,
+          /\brbs\b/i,
+          /\bglucose\b/i
+        ],
+        exclusions: [/hba1c/i, /hb\s*a1c/i, /glycated/i, /urine/i, /microalbumin/i],
+        minValid: 20,
+        maxValid: 600
+      },
+      {
+        key: 'cholesterol',
+        aliases: [
+          /total\s+cholesterol/i,
+          /cholesterol[,\s]+total/i,
+          /serum\s+cholesterol/i,
+          /cholesterol\s+total/i,
+          /\bcholesterol\b/i
+        ],
+        exclusions: [/hdl/i, /ldl/i, /vldl/i, /non-hdl/i, /ratio/i],
+        minValid: 50,
+        maxValid: 600
+      },
+      {
+        key: 'triglycerides',
+        aliases: [
+          /triglycerides/i,
+          /triglyceride/i,
+          /serum\s+triglycerides/i,
+          /\btg\b/i
+        ],
+        exclusions: [/hdl/i, /ldl/i, /vldl/i, /ratio/i],
+        minValid: 20,
+        maxValid: 1000
+      },
+      {
+        key: 'hemoglobin',
+        aliases: [
+          /hemoglobin/i,
+          /haemoglobin/i,
+          /\bhb\b/i,
+          /\bhgb\b/i
+        ],
+        exclusions: [/hba1c/i, /hb\s*a1c/i, /mch/i, /mchc/i, /mcv/i, /electrophoresis/i],
+        minValid: 3.0,
+        maxValid: 25.0
+      },
+      {
+        key: 'creatinine',
+        aliases: [
+          /serum\s+creatinine/i,
+          /creatinine[,\s]+serum/i,
+          /\bcreatinine\b/i
+        ],
+        exclusions: [/clearance/i, /urine/i, /ratio/i, /bun/i, /urea/i, /egfr/i],
+        minValid: 0.1,
+        maxValid: 15.0
+      },
+      {
+        key: 'ast',
+        aliases: [
+          /aspartate\s+aminotransferase/i,
+          /aspartate\s+transaminase/i,
+          /\bast\b/i,
+          /\bsgot\b/i
+        ],
+        exclusions: [/alt/i, /sgpt/i, /ratio/i, /ast\/alt/i, /sgot\/sgpt/i],
+        minValid: 2,
+        maxValid: 1000
+      },
+      {
+        key: 'tsh',
+        aliases: [
+          /thyroid\s+stimulating\s+hormone/i,
+          /thyrotropin/i,
+          /serum\s+tsh/i,
+          /\btsh\b/i
+        ],
+        exclusions: [/free\s+t3/i, /free\s+t4/i, /ft3/i, /ft4/i, /\bt3\b/i, /\bt4\b/i, /anti-tpo/i],
+        minValid: 0.01,
+        maxValid: 100.0
       }
-    }, 450);
+    ];
+
+    let count = 0;
+
+    for (const rule of rules) {
+      for (const line of lines) {
+        if (rule.exclusions.some(ex => ex.test(line))) {
+          continue;
+        }
+
+        const matchedAlias = rule.aliases.find(al => al.test(line));
+        if (matchedAlias) {
+          const numMatches = line.match(/\b\d+(?:\.\d+)?\b/g);
+          if (numMatches) {
+            for (const numStr of numMatches) {
+              const numVal = parseFloat(numStr);
+              if (!isNaN(numVal) && numVal >= rule.minValid && numVal <= rule.maxValid) {
+                this.biomarkers[rule.key].val = numVal;
+                this.biomarkers[rule.key].isPresent = true;
+                this.biomarkers[rule.key].rawLine = line;
+                this.currentValues[rule.key] = numVal;
+                count++;
+                break;
+              }
+            }
+          }
+        }
+        if (this.biomarkers[rule.key].isPresent) {
+          break;
+        }
+      }
+    }
+
+    this.extractedCount = count;
+    return count;
+  }
+
+  renderInsufficientDataNotice() {
+    this.resetBiomarkerState();
+    this.renderInputs();
+
+    const resultCard = document.getElementById("lab-result-card");
+    if (resultCard) {
+      resultCard.style.display = "block";
+      
+      const visualizer = document.getElementById("lab-range-visualizer");
+      const riskOutput = document.getElementById("lab-risk-output");
+      const lifestyleOutput = document.getElementById("lab-lifestyle-output");
+      const simplifierOutput = document.getElementById("lab-simplifier-output");
+      const ayurvedaOutput = document.getElementById("lab-ayurveda-output");
+
+      if (visualizer) {
+        visualizer.innerHTML = `
+          <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 25px;">
+            <div style="font-size: 2.2rem; margin-bottom: 10px;">⚠️</div>
+            <h3 style="color: var(--color-danger); font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Insufficient Report Data</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; max-width: 500px; margin: 0 auto 15px auto; line-height: 1.5;">
+              Required biomarkers could not be identified in the uploaded document. Please upload a valid laboratory report containing relevant parameters.
+            </p>
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: left; max-width: 450px; margin: 15px auto 0 auto; background: rgba(0,0,0,0.2); padding: 12px 16px; border-radius: 8px;">
+              <strong>Missing Biomarkers:</strong>
+              <ul style="margin: 6px 0 0 18px; padding: 0;">
+                ${Object.keys(this.biomarkers).map(k => `<li>${this.biomarkers[k].name}: <span style="font-style:italic; color:#ff9800;">Not provided in the report</span></li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        `;
+      }
+
+      if (riskOutput) {
+        riskOutput.innerHTML = `<strong style="color: var(--color-warning);">⚠️ Required biomarkers could not be identified in the uploaded document. No health risks generated.</strong>`;
+      }
+
+      if (lifestyleOutput && lifestyleOutput.parentElement) {
+        lifestyleOutput.parentElement.style.display = "none";
+      }
+
+      if (simplifierOutput) {
+        simplifierOutput.innerHTML = `<p style="color: var(--text-muted); font-style: italic;">No biomarkers identified to simplify.</p>`;
+      }
+
+      if (ayurvedaOutput && ayurvedaOutput.parentElement) {
+        ayurvedaOutput.parentElement.style.display = "none";
+      }
+
+      resultCard.scrollIntoView({ behavior: "smooth" });
+    }
   }
 
   saveCurrentReportToHistory() {
@@ -330,19 +650,20 @@ class LabAnalyzer {
     const ast = this.currentValues.ast;
     const tsh = this.currentValues.tsh;
 
-    if (gl <= 100 && ch <= 200 && tr <= 150 && hb >= 12 && cr <= 1.2 && ast <= 40 && tsh <= 4.5 && tsh >= 0.4) {
+    if (gl !== null && ch !== null && tr !== null && hb !== null && cr !== null && ast !== null && tsh !== null &&
+        gl <= 100 && ch <= 200 && tr <= 150 && hb >= 12 && cr <= 1.2 && ast <= 40 && tsh <= 4.5 && tsh >= 0.4) {
       riskSummary = "All Biomarkers within Healthy Ranges";
       riskLevel = "normal";
-    } else if (gl > 120 && hb < 11.5) {
+    } else if (gl !== null && hb !== null && gl > 120 && hb < 11.5) {
       riskSummary = "Diabetic Tendency & Mild Anemia";
       riskLevel = "moderate";
-    } else if (ch > 200 || tr > 150) {
+    } else if ((ch !== null && ch > 200) || (tr !== null && tr > 150)) {
       riskSummary = "Hyperlipidemia & Cardiovascular Stress";
       riskLevel = "moderate";
-    } else if (ast > 40 && cr > 1.2) {
+    } else if (ast !== null && cr !== null && ast > 40 && cr > 1.2) {
       riskSummary = "Hepatorenal Stress (Liver & Kidney)";
       riskLevel = "critical";
-    } else if (tsh > 4.5) {
+    } else if (tsh !== null && tsh > 4.5) {
       riskSummary = "Underactive Thyroid (Hypothyroidism)";
       riskLevel = "moderate";
     } else {
@@ -384,16 +705,21 @@ class LabAnalyzer {
     const sample = this.samples[type];
     if (!sample) return;
 
+    this.resetBiomarkerState();
+
     Object.keys(sample).forEach(key => {
+      this.biomarkers[key].val = sample[key];
+      this.biomarkers[key].isPresent = true;
       this.currentValues[key] = sample[key];
       const input = document.getElementById(`lab-input-${key}`);
       if (input) input.value = sample[key];
     });
 
+    this.extractedCount = 7;
+    this.renderInputs();
     this.analyze();
     this.saveCurrentReportToHistory();
     
-    // Automatically reveal result card on template selection
     const resultCard = document.getElementById("lab-result-card");
     if (resultCard) {
       resultCard.style.display = "block";
@@ -407,17 +733,23 @@ class LabAnalyzer {
     const ranges = this.getRanges();
     container.innerHTML = Object.keys(ranges).map(key => {
       const bio   = ranges[key];
-      const value = this.currentValues[key];
+      const bmState = this.biomarkers[key];
+      const value = bmState.isPresent && bmState.val !== null ? bmState.val : '';
       const name  = this.getTranslation(`name_${key}`);
+      const isPresent = bmState.isPresent;
+
       return `
         <div class="form-group" style="margin-bottom:15px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <label class="form-label" for="lab-input-${key}" style="font-weight:600;color:var(--text-primary);">${name}</label>
-            <span style="font-size:0.8rem;color:var(--text-secondary);">${bio.unit}</span>
+            <span style="font-size:0.8rem;color:${isPresent ? 'var(--color-primary)' : 'var(--text-muted)'}; font-weight: 500;">
+              ${isPresent ? bio.unit : 'Not provided in the report'}
+            </span>
           </div>
           <input type="number"
                  class="form-input"
                  id="lab-input-${key}"
+                 placeholder="${isPresent ? bio.unit : 'Not provided in the report'}"
                  value="${value}"
                  min="${bio.minLimit}"
                  max="${bio.maxLimit}"
@@ -428,8 +760,19 @@ class LabAnalyzer {
   }
 
   updateValue(key, val) {
-    const num = parseFloat(val);
-    if (!isNaN(num)) this.currentValues[key] = num;
+    if (val === '' || val === null || val === undefined) {
+      this.biomarkers[key].val = null;
+      this.biomarkers[key].isPresent = false;
+      this.currentValues[key] = null;
+    } else {
+      const num = parseFloat(val);
+      if (!isNaN(num)) {
+        this.biomarkers[key].val = num;
+        this.biomarkers[key].isPresent = true;
+        this.currentValues[key] = num;
+      }
+    }
+    this.analyze();
   }
 
   updateName(val) {
@@ -448,7 +791,6 @@ class LabAnalyzer {
   }
 
   reRenderCurrentResult() {
-    // Called when user switches language in Topbar / Sidebar
     this.renderInputs();
     this.analyze();
   }
@@ -456,12 +798,17 @@ class LabAnalyzer {
   analyze() {
     const visualizer       = document.getElementById('lab-range-visualizer');
     const riskOutput       = document.getElementById('lab-risk-output');
+    const lifestyleBox     = document.getElementById('lab-lifestyle-box');
+    const lifestyleOutput  = document.getElementById('lab-lifestyle-output');
     const simplifierOutput = document.getElementById('lab-simplifier-output');
     const ayurvedaOutput   = document.getElementById('lab-ayurveda-output');
     if (!visualizer) return;
 
     const ranges = this.getRanges();
     let abnCount = 0;
+    const abnormalPresentBiomarkers = [];
+
+    console.log("[LabAnalyzer Debug] EVALUATED BIOMARKERS:", JSON.parse(JSON.stringify(this.currentValues)));
 
     const patientBanner = `
       <div class="patient-banner" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 12px 18px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md);">
@@ -481,45 +828,59 @@ class LabAnalyzer {
 
     const visualizerHtml = Object.keys(ranges).map(key => {
       const bio = ranges[key];
-      const val = this.currentValues[key];
+      const bmState = this.biomarkers[key];
+      const isPresent = bmState.isPresent && bmState.val !== null;
+      const val = bmState.val;
       const name = this.getTranslation(`name_${key}`);
       
-      // Calculate marker position percentage
-      // We map the value to a progress track from minLimit to maxLimit
-      const totalRange = bio.maxLimit - bio.minLimit;
-      let pct = ((val - bio.minLimit) / totalRange) * 100;
-      pct = Math.max(2, Math.min(98, pct)); // bound between 2% and 98% for pin layout
-
-      // Determine Status Label
-      let status = "normal";
-      let badgeClass = "severity-mild";
-      let statusLabel = this.getTranslation("statusNormal");
-
-      if (val < bio.min) {
-        status = "low";
-        badgeClass = "severity-moderate";
-        statusLabel = this.getTranslation("statusLow");
-        abnCount++;
-      } else if (val > bio.max) {
-        status = "high";
-        // Check if critically high
-        const critLimit = bio.max * 1.5;
-        if (val > critLimit) {
-          status = "critical";
-          badgeClass = "severity-critical";
-          statusLabel = this.getTranslation("statusCritical");
-        } else {
-          status = "high";
-          badgeClass = "severity-moderate";
-          statusLabel = this.getTranslation("statusHigh");
-        }
-        abnCount++;
+      if (!isPresent) {
+        return `
+          <div class="range-gauge-container" style="margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px dashed rgba(255,255,255,0.05); opacity: 0.75;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div style="font-weight: 700; font-family: var(--font-heading); font-size: 0.92rem; color: var(--text-secondary);">${name}</div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 0.85rem; font-style: italic; color: var(--text-muted);">Not provided in the report</span>
+                <span class="severity-badge severity-mild" style="padding: 2px 10px; font-size: 0.7rem; background: rgba(255,255,255,0.05); color: var(--text-muted);">Not Provided</span>
+              </div>
+            </div>
+          </div>
+        `;
       }
 
-      // Zone widths
+      const totalRange = bio.maxLimit - bio.minLimit;
+      let pct = ((val - bio.minLimit) / totalRange) * 100;
+      pct = Math.max(2, Math.min(98, pct));
+
+      let badgeClass = "severity-mild";
+      let statusLabel = this.getTranslation("statusNormal");
+      let statusColor = "#10b981";
+
+      if (val < bio.min) {
+        badgeClass = "severity-moderate";
+        statusLabel = this.getTranslation("statusLow");
+        statusColor = "#00d4ff";
+        abnCount++;
+        abnormalPresentBiomarkers.push({ key, name, val, unit: bio.unit, statusLabel, statusColor, type: 'low' });
+      } else if (val > bio.max) {
+        const critLimit = bio.max * 1.5;
+        if (val > critLimit) {
+          badgeClass = "severity-critical";
+          statusLabel = this.getTranslation("statusCritical");
+          statusColor = "#ef4444";
+        } else {
+          badgeClass = "severity-moderate";
+          statusLabel = this.getTranslation("statusHigh");
+          statusColor = "#ff9800";
+        }
+        abnCount++;
+        abnormalPresentBiomarkers.push({ key, name, val, unit: bio.unit, statusLabel, statusColor, type: 'high' });
+      }
+
       const lowZonePct = ((bio.min - bio.minLimit) / totalRange) * 100;
       const greenZonePct = ((bio.max - bio.min) / totalRange) * 100;
       const highZonePct = 100 - (lowZonePct + greenZonePct);
+
+      console.log(`[LabAnalyzer Debug] FINAL UI VALUE (${key}):`, val, bio.unit, `(${statusLabel})`);
 
       return `
         <div class="range-gauge-container" style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px dashed rgba(255,255,255,0.05);">
@@ -527,7 +888,7 @@ class LabAnalyzer {
             <div style="font-weight: 700; font-family: var(--font-heading); font-size: 0.96rem; color: #fff;">${name}</div>
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="font-size: 1.1rem; font-weight: 800; color: var(--color-primary);">${val} <span style="font-size: 0.78rem; font-weight: 500; color: var(--text-secondary);">${bio.unit}</span></span>
-              <span class="severity-badge ${badgeClass}" style="padding: 2px 10px; font-size: 0.7rem;">${statusLabel}</span>
+              <span class="severity-badge ${badgeClass}" style="padding: 2px 10px; font-size: 0.75rem;">${statusLabel}</span>
             </div>
           </div>
           <div class="gauge-track-wrap" style="position: relative; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); overflow: visible; display: flex; margin-bottom: 8px;">
@@ -538,7 +899,7 @@ class LabAnalyzer {
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted);">
             <span>${bio.minLimit}</span>
-            <span>${this.getTranslation("normalRange")}: ${bio.min} - ${bio.max}</span>
+            <span>${this.getTranslation("normalRange")}: ${bio.min} - ${bio.max} ${bio.unit}</span>
             <span>${bio.maxLimit}</span>
           </div>
         </div>
@@ -547,44 +908,113 @@ class LabAnalyzer {
 
     visualizer.innerHTML = patientBanner + visualizerHtml;
 
-    // 2. Multi-Biomarker Risk Engine Logic
-    let riskText = "";
-    const gl = this.currentValues.glucose;
-    const ch = this.currentValues.cholesterol;
-    const tr = this.currentValues.triglycerides;
-    const hb = this.currentValues.hemoglobin;
-    const cr = this.currentValues.creatinine;
-    const ast = this.currentValues.ast;
-    const tsh = this.currentValues.tsh;
+    // Dynamic AI Health Risk Profile & Abnormalities Summary
+    const presentCount = Object.keys(this.biomarkers).filter(k => this.biomarkers[k].isPresent && this.biomarkers[k].val !== null).length;
 
-    if (gl <= 100 && ch <= 200 && tr <= 150 && hb >= 12 && cr <= 1.2 && ast <= 40 && tsh <= 4.5 && tsh >= 0.4) {
-      riskText = this.getTranslation("risk_normal");
-    } else if (gl > 120 && hb < 11.5) {
-      riskText = this.getTranslation("risk_diab_anemia");
-    } else if (ch > 200 || tr > 150) {
-      riskText = this.getTranslation("risk_lipid");
-    } else if (ast > 40 && cr > 1.2) {
-      riskText = this.getTranslation("risk_liver_kidney");
-    } else if (tsh > 4.5) {
-      riskText = this.getTranslation("risk_thyroid");
+    if (presentCount === 0) {
+      if (riskOutput) {
+        riskOutput.innerHTML = `<strong style="color: var(--color-warning);">⚠️ Required biomarkers could not be identified in the uploaded document.</strong>`;
+      }
+    } else if (abnormalPresentBiomarkers.length === 0) {
+      if (riskOutput) {
+        riskOutput.innerHTML = `
+          <div style="color: #10b981; font-weight: 700; font-size: 1rem; margin-bottom: 8px;">✅ Biomarkers Within Configured Reference Ranges</div>
+          <p style="color: var(--text-secondary); margin: 0; line-height: 1.5;">
+            All biomarkers identified in the uploaded report are within the configured reference ranges. Continue healthy lifestyle habits and discuss your results with your healthcare professional as appropriate.
+          </p>
+        `;
+      }
     } else {
-      riskText = this.getTranslation("risk_generic_abnormal");
+      const abnBullets = abnormalPresentBiomarkers.map(bm => {
+        return `<li style="margin-bottom: 4px;"><strong>${bm.name}</strong> — <span style="color: var(--color-primary); font-weight: 700;">${bm.val} ${bm.unit}</span> — <span style="color: ${bm.statusColor}; font-weight: 700;">${bm.statusLabel}</span></li>`;
+      }).join('');
+
+      if (riskOutput) {
+        riskOutput.innerHTML = `
+          <div style="color: var(--color-warning); font-weight: 700; font-size: 1rem; margin-bottom: 8px;">⚠️ Biomarker Abnormalities Detected</div>
+          <p style="color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+            Several measured biomarkers are outside the configured reference ranges. Elevated or lower values were detected across evaluated metrics.
+          </p>
+          <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 14px 18px; margin-bottom: 14px;">
+            <div style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px;">Detected abnormalities:</div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.9rem; line-height: 1.6;">
+              ${abnBullets}
+            </ul>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; font-style: italic; margin: 0; line-height: 1.5;">
+            These results should be reviewed with a qualified healthcare professional. The report analyzer provides educational interpretation and does not establish a medical diagnosis.
+          </p>
+        `;
+      }
     }
 
-    if (riskOutput) {
-      riskOutput.innerHTML = `<strong>${riskText}</strong>`;
+    // 🌱 Natural Lifestyle & Wellness Guidance (Dynamic for present abnormal biomarkers ONLY)
+    if (lifestyleOutput) {
+      if (abnormalPresentBiomarkers.length === 0) {
+        if (lifestyleBox) lifestyleBox.style.display = "none";
+      } else {
+        if (lifestyleBox) lifestyleBox.style.display = "block";
+
+        const lifestyleHtml = abnormalPresentBiomarkers.map(bm => {
+          let advice = "";
+          if (bm.key === "glucose") {
+            advice = bm.type === "high"
+              ? "Reduce sugary drinks and foods with large amounts of added sugar. Prefer fiber-rich whole foods such as vegetables, legumes and whole grains. Maintain regular physical activity appropriate for your circumstances and stay well hydrated."
+              : "Maintain balanced meals with complex carbohydrates to stabilize blood glucose. Discuss persistent low glucose episodes with a healthcare professional.";
+          } else if (bm.key === "cholesterol") {
+            advice = "Favor vegetables, fruits, legumes and whole grains. Include sources of dietary fiber and limit foods high in saturated and trans fats. Prefer healthier unsaturated fat sources where appropriate and maintain regular physical activity.";
+          } else if (bm.key === "triglycerides") {
+            advice = bm.type === "high"
+              ? "Reduce foods and beverages high in added sugar. Limit excessive refined carbohydrates. Prefer balanced meals containing vegetables, fiber and appropriate protein. Maintain regular physical activity and limit alcohol consumption."
+              : "Your triglyceride value is below the configured reference range. Maintain a balanced diet and discuss persistently low results with a healthcare professional, particularly if other symptoms or abnormal laboratory results are present.";
+          } else if (bm.key === "hemoglobin") {
+            advice = bm.type === "low"
+              ? "Maintain a balanced diet containing iron-rich foods alongside appropriate sources of vitamin C to support dietary absorption. Discuss the result with a healthcare professional to determine the underlying cause."
+              : "Maintain adequate hydration and discuss persistently elevated hemoglobin levels with a healthcare professional to evaluate hydration or environmental influences.";
+          } else if (bm.key === "creatinine") {
+            advice = "Your creatinine value is above the configured reference range. Adequate hydration may be appropriate unless a healthcare professional has advised fluid restriction. Avoid self-prescribing supplements or herbal products based solely on this result. An elevated creatinine result should be discussed with a qualified healthcare professional because interpretation depends on factors such as kidney function, muscle mass, medications and other clinical information.";
+          } else if (bm.key === "ast") {
+            advice = "Avoid excessive alcohol consumption. Maintain a balanced diet and avoid unnecessary supplements or unprescribed medications unless recommended by a healthcare professional. Discuss persistent elevation with a qualified healthcare professional.";
+          } else if (bm.key === "tsh") {
+            advice = "Your TSH value is outside the configured reference range. TSH interpretation can depend on additional thyroid tests and clinical context. Discuss the result with a qualified healthcare professional. Do not start thyroid supplements, iodine products or herbal treatments based solely on this report.";
+          }
+
+          return `
+            <div style="padding: 12px 14px; border-radius: 8px; background: rgba(16, 185, 129, 0.04); border-left: 3px solid #10b981;">
+              <div style="font-weight: 700; font-size: 0.9rem; color: #10b981; margin-bottom: 4px;">
+                ${bm.name} (${bm.val} ${bm.unit}) — ${bm.statusLabel}
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.5;">${advice}</p>
+            </div>
+          `;
+        }).join("");
+
+        lifestyleOutput.innerHTML = lifestyleHtml;
+      }
     }
 
-    // 3. Jargon Simplifier Engine
+    // Patient Report Simplifier Engine
     const simplifiedHtml = Object.keys(ranges).map(key => {
       const bio = ranges[key];
-      const val = this.currentValues[key];
+      const bmState = this.biomarkers[key];
+      const isPresent = bmState.isPresent && bmState.val !== null;
+      const val = bmState.val;
       const name = this.getTranslation(`name_${key}`);
-      
+      const desc = this.getTranslation(`desc_${key}`);
+
+      if (!isPresent) {
+        return `
+          <div style="padding: 10px; border-radius: 8px; background: transparent; border-left: 3px solid rgba(255,255,255,0.05); opacity: 0.7;">
+            <div style="font-weight: 600; font-size: 0.88rem; color: var(--text-muted); margin-bottom: 3px;">
+              ${name} — <span style="font-style: italic;">Not provided in the report</span>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">${desc}</p>
+          </div>
+        `;
+      }
+
       let highlight = false;
       if (val < bio.min || val > bio.max) highlight = true;
-
-      const desc = this.getTranslation(`desc_${key}`);
 
       return `
         <div style="padding: 10px; border-radius: 8px; background: ${highlight ? "rgba(255,158,11,0.03)" : "transparent"}; border-left: 3px solid ${highlight ? "var(--color-warning)" : "rgba(255,255,255,0.05)"};">
@@ -600,36 +1030,70 @@ class LabAnalyzer {
       simplifierOutput.innerHTML = simplifiedHtml;
     }
 
-    // 4. Ayurveda recommendations mapping
-    const ayurvedaHtml = Object.keys(ranges).map(key => {
-      const bio = ranges[key];
-      const val = this.currentValues[key];
-      
-      // Only suggest Ayurvedic remedies for out-of-range parameters to keep focus
-      if (val >= bio.min && val <= bio.max) return "";
-
-      const name = this.getTranslation(`name_${key}`);
-      const remedy = this.getTranslation(`ayur_${key}`);
-
-      return `
-        <div class="ayurveda-map-card" style="padding: var(--space-md); border-color: rgba(255, 158, 11, 0.25); background: rgba(8, 13, 26, 0.6);">
-          <div class="ayurveda-map-name" style="color: var(--color-warning);">🌿 Balancing ${name}</div>
-          <div class="ayurveda-map-use" style="font-size: 0.82rem; line-height: 1.4; color: var(--text-secondary);">
-            ${remedy}
-          </div>
-        </div>
-      `;
-    }).join("");
-
+    // 🌿 Traditional / Ayurvedic Wellness Information (Educational, separate, with safety disclaimer)
     if (ayurvedaOutput) {
-      const hasSuggestions = ayurvedaHtml.replace(/\s/g, "").length > 0;
-      if (hasSuggestions) {
-        ayurvedaOutput.style.display = "grid";
-        ayurvedaOutput.innerHTML = ayurvedaHtml;
-        ayurvedaOutput.parentElement.style.display = "block"; // Show box
+      if (abnormalPresentBiomarkers.length === 0) {
+        if (ayurvedaOutput.parentElement) ayurvedaOutput.parentElement.style.display = "none";
       } else {
-        ayurvedaOutput.parentElement.style.display = "none"; // Hide box if perfectly healthy
+        if (ayurvedaOutput.parentElement) ayurvedaOutput.parentElement.style.display = "block";
+
+        const disclaimerHeader = `
+          <div style="grid-column: 1 / -1; background: rgba(255, 158, 11, 0.08); border: 1px solid rgba(255, 158, 11, 0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5;">
+            <strong>Disclaimer:</strong> This section provides general traditional wellness information for educational purposes only. It is not a diagnosis or treatment recommendation. Herbal products and supplements may interact with medicines or may not be appropriate for everyone. Consult a qualified healthcare professional before using them, especially when laboratory results are abnormal.
+          </div>
+        `;
+
+        const ayurvedaHtml = abnormalPresentBiomarkers.map(bm => {
+          let ayurText = "";
+          if (bm.key === "glucose") {
+            ayurText = "Traditional practices involving herbs like Nisha Amalaki (Turmeric + Amla) or Fenugreek seeds are traditionally used in Ayurveda for general metabolic wellness routines. These should not replace medical sugar management.";
+          } else if (bm.key === "cholesterol") {
+            ayurText = "Garlic (Lashuna) and Arjuna bark are traditionally referenced in Ayurveda to support general cardiovascular wellness alongside a balanced diet.";
+          } else if (bm.key === "triglycerides") {
+            ayurText = "Triphala powder taken with warm water is a traditional Ayurvedic digestive routine. It should be used as part of general lifestyle balance, not as a replacement for medical guidance.";
+          } else if (bm.key === "hemoglobin") {
+            ayurText = "Traditional foods like Pomegranate (Dadima) and Ayurvedic preparations like Lohasava are traditionally used to support general blood nutrition. Professional medical evaluation is required to identify the root cause of low hemoglobin.";
+          } else if (bm.key === "creatinine") {
+            ayurText = "Traditional herbs like Punarnava are referenced in Ayurvedic literature for general fluid balance. However, an elevated creatinine level requires professional medical evaluation. Do not use herbal products as a substitute for medical renal care.";
+          } else if (bm.key === "ast") {
+            ayurText = "Bhumi Amla and Giloy are traditionally mentioned in Ayurveda for general liver support routines. Persistent liver enzyme elevation warrants clinical medical evaluation.";
+          } else if (bm.key === "tsh") {
+            ayurText = "Traditional routines like Dhania (coriander) water or gentle neck massage with warm sesame oil are sometimes used in Ayurvedic lifestyle routines. Thyroid hormone balance requires medical supervision.";
+          }
+
+          return `
+            <div class="ayurveda-map-card" style="padding: var(--space-md); border-color: rgba(255, 158, 11, 0.25); background: rgba(8, 13, 26, 0.6);">
+              <div class="ayurveda-map-name" style="color: var(--color-warning);">🌿 Traditional Note: ${bm.name} (${bm.val} ${bm.unit})</div>
+              <div class="ayurveda-map-use" style="font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary); margin-top: 6px;">
+                ${ayurText}
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        ayurvedaOutput.style.display = "grid";
+        ayurvedaOutput.innerHTML = disclaimerHeader + ayurvedaHtml;
       }
+    }
+
+    // 🩺 Consult a Specialist (Dynamic Location-Based Provider Discovery)
+    let suggestedSpecialty = "General Physician";
+    if (abnormalPresentBiomarkers.length === 1) {
+      const abnKey = abnormalPresentBiomarkers[0].key;
+      if (abnKey === "glucose" || abnKey === "tsh") suggestedSpecialty = "Endocrinologist";
+      else if (abnKey === "cholesterol" || abnKey === "triglycerides") suggestedSpecialty = "Cardiologist";
+      else if (abnKey === "hemoglobin") suggestedSpecialty = "General Physician";
+      else if (abnKey === "creatinine") suggestedSpecialty = "Nephrologist";
+      else if (abnKey === "ast") suggestedSpecialty = "Gastroenterologist";
+    } else if (abnormalPresentBiomarkers.length > 1) {
+      suggestedSpecialty = "General Physician";
+    }
+
+    if (window.appointmentManager && typeof window.appointmentManager.renderSpecialistWidget === "function") {
+      const note = abnormalPresentBiomarkers.length > 0
+        ? "Based on evaluated biomarker metrics outside reference ranges, consulting a specialist is recommended for comprehensive clinical review."
+        : "All evaluated biomarkers in the report are within configured reference ranges. Consider discussing your general health with a General Physician for routine wellness.";
+      window.appointmentManager.renderSpecialistWidget("lab-specialist-container", suggestedSpecialty, note);
     }
   }
 }
@@ -639,7 +1103,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.labAnalyzer = new LabAnalyzer();
   window.labAnalyzer.init();
 
-  // Extend active language changes to refresh lab analyzer too
   const originalSetLanguage = window.i18n?.setLanguage;
   if (originalSetLanguage) {
     window.i18n.setLanguage = function(lang) {
